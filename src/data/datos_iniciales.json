@@ -1,0 +1,432 @@
+{
+  "fecha_extraccion": "2026-05-26",
+  "fuente": "INVERSIONES ARAVENA SPA 2026.xlsx - hoja IMPORTACION",
+  "periodo": "Diciembre 2025 - Mayo 2026",
+  "indicadores_actuales": {
+    "tipo_cambio_actual": 181,
+    "costo_por_kilo_total": 496922.4460464189,
+    "indicador_fabricacion": 4283227.931808569,
+    "bruto_por_kilo": 166523.54199790533,
+    "bano_por_kilo": 302785.59733108303,
+    "aduana_por_kilo": 27613.30671743052,
+    "kilos_microzircon": 319.95200000000006,
+    "kilos_cadena": 369.733,
+    "kilos_oro_gf": 14.843000000000002,
+    "kilos_total": 704.528
+  },
+  "costos_ponderados_por_kilo": {
+    "MICROZIRCON": 570000,
+    "CADENA": 405000,
+    "ORO GF": 1500000
+  },
+  "compras_bruto": [
+    {
+      "fecha": "2025-12-01",
+      "detalle": "Diciembre",
+      "kilos": 292.139,
+      "total_reales": 207235
+    },
+    {
+      "fecha": "1900-01-01",
+      "detalle": "Enero",
+      "kilos": 155.119,
+      "total_reales": 106707
+    },
+    {
+      "fecha": "2026-02-01",
+      "detalle": "Febrero",
+      "kilos": 180.668,
+      "total_reales": 165191.45
+    },
+    {
+      "fecha": "2026-03-01",
+      "detalle": "Marzo",
+      "kilos": 201.789,
+      "total_reales": 141031
+    },
+    {
+      "fecha": "2026-04-02",
+      "detalle": "Abril",
+      "kilos": 119.349,
+      "total_reales": 113964
+    },
+    {
+      "fecha": "2026-05-05",
+      "detalle": "Marluci",
+      "kilos": 2.24,
+      "total_reales": 857.72
+    },
+    {
+      "fecha": "2026-05-06",
+      "detalle": "Metal Sul",
+      "kilos": 3.18,
+      "total_reales": 3927
+    },
+    {
+      "fecha": "2026-05-08",
+      "detalle": "Vera Luccas",
+      "kilos": 35.8,
+      "total_reales": 31531.5
+    },
+    {
+      "fecha": "2026-05-08",
+      "detalle": "Gold",
+      "kilos": 1.235,
+      "total_reales": 393
+    },
+    {
+      "fecha": "2026-05-11",
+      "detalle": "Art",
+      "kilos": 0.1,
+      "total_reales": 48.91
+    },
+    {
+      "fecha": "2026-05-14",
+      "detalle": "Marluci",
+      "kilos": 2,
+      "total_reales": 842.6
+    },
+    {
+      "fecha": "2026-05-20",
+      "detalle": "Metal Sul",
+      "kilos": 1.185,
+      "total_reales": 1448.84
+    }
+  ],
+  "pagos": [
+    {
+      "fecha": "2025-12-01",
+      "reales": 337849,
+      "chilenos": 60040728
+    },
+    {
+      "fecha": "1900-01-01",
+      "reales": 211488,
+      "chilenos": 36052354
+    },
+    {
+      "fecha": "2026-02-01",
+      "reales": 269832,
+      "chilenos": 45863704
+    },
+    {
+      "fecha": "2026-03-01",
+      "reales": 378792,
+      "chilenos": 66900556
+    },
+    {
+      "fecha": "2026-04-01",
+      "reales": 464887,
+      "chilenos": 84821569
+    },
+    {
+      "fecha": "2026-04-06",
+      "reales": 63440,
+      "chilenos": 11702600
+    },
+    {
+      "fecha": "2026-05-08",
+      "reales": 31532,
+      "chilenos": 5774019
+    },
+    {
+      "fecha": "2026-05-19",
+      "reales": 150300,
+      "chilenos": 27400000
+    },
+    {
+      "fecha": "2026-05-20",
+      "reales": 9500,
+      "chilenos": 1736980
+    },
+    {
+      "fecha": "2026-05-20",
+      "reales": 9000,
+      "chilenos": 1650000
+    }
+  ],
+  "banos_completados": [
+    {
+      "fecha": "2025-12-11",
+      "detalle": "1 ",
+      "kilos": 45.26,
+      "total_clp": 66740.98
+    },
+    {
+      "fecha": "2025-12-18",
+      "detalle": "2",
+      "kilos": 32.37,
+      "total_clp": 47989.2
+    },
+    {
+      "fecha": "2026-01-22",
+      "detalle": "3",
+      "kilos": 57.43,
+      "total_clp": 107010.22
+    },
+    {
+      "fecha": "2026-02-03",
+      "detalle": "4",
+      "kilos": 60.774,
+      "total_clp": 99433.88
+    },
+    {
+      "fecha": "2026-02-25",
+      "detalle": "5",
+      "kilos": 87.35,
+      "total_clp": 141973.2
+    },
+    {
+      "fecha": "2026-03-06",
+      "detalle": "6",
+      "kilos": 91.636,
+      "total_clp": 175770.64
+    },
+    {
+      "fecha": "2026-03-31",
+      "detalle": "7",
+      "kilos": 91.98,
+      "total_clp": 149392.52
+    },
+    {
+      "fecha": "2026-04-10",
+      "detalle": "8",
+      "kilos": 140.1,
+      "total_clp": 226529.3
+    },
+    {
+      "fecha": "2026-04-29",
+      "detalle": "9",
+      "kilos": 92.26,
+      "total_clp": 154748.89
+    }
+  ],
+  "llegadas_mercaderia_por_bloque": [
+    {
+      "MICRO": 32.65,
+      "CADENA": 16.1,
+      "ORO GF": 0
+    },
+    {
+      "MICRO": 11.535,
+      "CADENA": 20.98,
+      "ORO GF": 0
+    },
+    {
+      "MICRO": 33.576,
+      "CADENA": 20.08,
+      "ORO GF": 3.5
+    },
+    {
+      "MICRO": 23.400000000000002,
+      "CADENA": 36.75,
+      "ORO GF": 0.44
+    },
+    {
+      "MICRO": 39.15,
+      "CADENA": 48.2,
+      "ORO GF": 0
+    },
+    {
+      "MICRO": 41.278,
+      "CADENA": 41.36,
+      "ORO GF": 8.908000000000001
+    },
+    {
+      "MICRO": 48.043,
+      "CADENA": 43.938,
+      "ORO GF": 0
+    },
+    {
+      "MICRO": 66.27000000000001,
+      "CADENA": 75.005,
+      "ORO GF": 0.095
+    },
+    {
+      "MICRO": 24.049999999999997,
+      "CADENA": 67.32000000000001,
+      "ORO GF": 1.9
+    }
+  ],
+  "servicios_completados": [
+    {
+      "fecha": "2025-12-01",
+      "detalle": "Diciembre",
+      "total_reales": 19570.04
+    },
+    {
+      "fecha": "1900-01-01",
+      "detalle": "Enero",
+      "total_reales": 11710
+    },
+    {
+      "fecha": "2026-02-01",
+      "detalle": "Febrero",
+      "total_reales": 10573
+    },
+    {
+      "fecha": "2026-03-01",
+      "detalle": "Marzo",
+      "total_reales": 23984
+    },
+    {
+      "fecha": "2026-04-01",
+      "detalle": "Abril",
+      "total_reales": 26645
+    },
+    {
+      "fecha": "2026-05-01",
+      "detalle": "Montaje",
+      "total_reales": 2927.4
+    },
+    {
+      "fecha": "2026-05-05",
+      "detalle": "Montaje",
+      "total_reales": 435.2
+    },
+    {
+      "fecha": "2026-05-07",
+      "detalle": "Montaje",
+      "total_reales": 454.53
+    }
+  ],
+  "pagos_aduana": [
+    {
+      "fecha": "2025-12-12",
+      "detalle": "T/I",
+      "kilos": 48.75,
+      "total_clp": 1675862
+    },
+    {
+      "fecha": "2025-12-22",
+      "detalle": "T/I",
+      "kilos": 32.515,
+      "total_clp": 1296053
+    },
+    {
+      "fecha": "2026-01-26",
+      "detalle": "T/I",
+      "kilos": 57.156,
+      "total_clp": 570163
+    },
+    {
+      "fecha": "2026-02-06",
+      "detalle": "T/I",
+      "kilos": 60.59,
+      "total_clp": 1811031
+    },
+    {
+      "fecha": "2026-03-02",
+      "detalle": "T/I",
+      "kilos": 87.35,
+      "total_clp": 2423011
+    },
+    {
+      "fecha": "2026-03-13",
+      "detalle": "T/I",
+      "kilos": 91.636,
+      "total_clp": 2636185
+    },
+    {
+      "fecha": "2026-04-02",
+      "detalle": "T/I",
+      "kilos": 91.98,
+      "total_clp": 2633698
+    },
+    {
+      "fecha": "2026-04-14",
+      "detalle": "T/I",
+      "kilos": 140.1,
+      "total_clp": 3624623
+    },
+    {
+      "fecha": "2026-05-06",
+      "detalle": "T/I",
+      "kilos": 92.26,
+      "total_clp": 2723221
+    }
+  ],
+  "historico_costos_joyas": [
+    {
+      "mes": "ENERO",
+      "CADENA": 450,
+      "MICRO": 650,
+      "ITALY": 2000,
+      "ORO_GF": 1500
+    },
+    {
+      "mes": "FEBRERO",
+      "CADENA": 450,
+      "MICRO": 650,
+      "ITALY": 2000,
+      "ORO_GF": 1400
+    },
+    {
+      "mes": "MARZO",
+      "CADENA": 450,
+      "MICRO": 650,
+      "ITALY": 2000,
+      "ORO_GF": 1400
+    },
+    {
+      "mes": "ABRIL",
+      "CADENA": 450,
+      "MICRO": 650,
+      "ITALY": 2000,
+      "ORO_GF": 1400
+    },
+    {
+      "mes": "MAYO",
+      "CADENA": 450,
+      "MICRO": 650,
+      "ITALY": 2000,
+      "ORO_GF": 1600
+    }
+  ],
+  "precios_venta": {
+    "nacional_sl925": {
+      "collares_pulseras_mujer": {
+        "desde_30k": 950,
+        "desde_100k": 800,
+        "medio_kilo": 650,
+        "por_kilo": 550
+      },
+      "collares_pulseras_hombre": {
+        "desde_30k": 750,
+        "desde_100k": 700,
+        "medio_kilo": 500,
+        "por_kilo": 450
+      },
+      "aros_colgantes": {
+        "desde_30k": 1200,
+        "desde_100k": 1000,
+        "medio_kilo": 900,
+        "por_kilo": 850
+      },
+      "anillos": {
+        "desde_30k": 1500,
+        "desde_100k": 1250,
+        "medio_kilo": 1100,
+        "por_kilo": 1000
+      },
+      "collares_pulseras_micro": {
+        "desde_30k": 1000,
+        "desde_100k": 900,
+        "medio_kilo": 800,
+        "por_kilo": 750
+      }
+    },
+    "italiana_925": {
+      "desde_30k": 3500,
+      "desde_100k": 3400,
+      "medio_kilo": 3300,
+      "por_kilo": 3200
+    },
+    "gf_18k": {
+      "desde_30k": 2500,
+      "desde_100k": 2250,
+      "medio_kilo": 2000,
+      "por_kilo": 1800
+    }
+  }
+}

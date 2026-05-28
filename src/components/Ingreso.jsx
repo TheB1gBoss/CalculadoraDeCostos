@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Banknote, Droplet, Package, PackageCheck, Plus, ShoppingCart, Wrench } from 'lucide-react'
+import { Banknote, Calendar, Droplet, Package, PackageCheck, Plus, ShoppingCart, Wrench } from 'lucide-react'
 import Accordion from './Accordion.jsx'
 import { parseNumeroFlexible } from '../lib/formato.js'
 
@@ -19,7 +19,7 @@ export default function Ingreso({ estado }) {
         <QuickAdd
           fields={[
             { key: 'fecha',        label: 'Fecha',    type: 'date',   default: today() },
-            { key: 'detalle',      label: 'Detalle',  type: 'text',   placeholder: 'Proveedor' },
+            { key: 'detalle',      label: 'Proveedor', type: 'text',   placeholder: 'Nombre del proveedor' },
             { key: 'kilos',        label: 'Kilos',    type: 'number', placeholder: '0,000' },
             { key: 'total_reales', label: 'Total R$', type: 'number', placeholder: '0,00' },
           ]}
@@ -53,7 +53,6 @@ export default function Ingreso({ estado }) {
         <QuickAdd
           fields={[
             { key: 'fecha',     label: 'Fecha',     type: 'date',   default: today() },
-            { key: 'detalle',   label: 'Detalle',   type: 'text',   placeholder: 'T/I, glosa...' },
             { key: 'kilos',     label: 'Kilos',     type: 'number', placeholder: '0,000' },
             { key: 'total_clp', label: 'Total CLP', type: 'number', placeholder: '0' },
           ]}
@@ -65,9 +64,8 @@ export default function Ingreso({ estado }) {
         <QuickAdd
           fields={[
             { key: 'fecha',     label: 'Fecha',    type: 'date',   default: today() },
-            { key: 'detalle',   label: 'Detalle',  type: 'text',   placeholder: 'N° baño' },
             { key: 'kilos',     label: 'Kilos',    type: 'number', placeholder: '0,000' },
-            { key: 'total_clp', label: 'Total R$', type: 'number', placeholder: '0,00' },
+            { key: 'total_clp', label: 'Total CLP', type: 'number', placeholder: '0' },
           ]}
           onAdd={(row) => addRow('banos_completados', row)}
         />
@@ -105,14 +103,26 @@ function QuickAdd({ fields, onAdd }) {
         {fields.map((f) => (
           <label key={f.key} className="block">
             <span className="label">{f.label}</span>
-            <input
-              type={f.type === 'date' ? 'date' : 'text'}
-              inputMode={f.type === 'number' ? 'decimal' : undefined}
-              value={form[f.key]}
-              placeholder={f.placeholder}
-              onChange={(e) => set(f.key, e.target.value)}
-              className="input"
-            />
+            {f.type === 'date' ? (
+              <div className="relative">
+                <Calendar size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500" />
+                <input
+                  type="date"
+                  value={form[f.key]}
+                  onChange={(e) => set(f.key, e.target.value)}
+                  className="input pl-8 font-medium"
+                />
+              </div>
+            ) : (
+              <input
+                type="text"
+                inputMode={f.type === 'number' ? 'decimal' : undefined}
+                value={form[f.key]}
+                placeholder={f.placeholder}
+                onChange={(e) => set(f.key, e.target.value)}
+                className="input"
+              />
+            )}
           </label>
         ))}
       </div>

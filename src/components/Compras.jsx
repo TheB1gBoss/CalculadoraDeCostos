@@ -15,8 +15,8 @@ export default function Compras({ estado }) {
   return (
     <div className="space-y-4">
 
-      {/* Banner en vivo */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* Banner en vivo — sticky */}
+      <div className="sticky top-0 z-20 grid grid-cols-3 gap-3 bg-gray-50 pb-2 pt-0 dark:bg-ray-bg">
         <LiveCard label="TC Ponderado"    value={tc ? formatNumero(tc, 2) : '—'} sub="CLP / R$" highlight />
         <LiveCard label="Kilos comprados" value={formatKilos(totalKilos)}         sub="en bruto" />
         <LiveCard label="Total R$"        value={formatReales(totalR$)}           sub={tc ? `≈ ${formatCLP(totalR$ * tc)}` : '—'} />

@@ -11,8 +11,8 @@ export default function Costos({ estado }) {
   return (
     <div className="space-y-4">
 
-      {/* Banner en vivo */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {/* Banner en vivo — sticky */}
+      <div className="sticky top-0 z-20 grid grid-cols-2 gap-3 bg-gray-50 pb-2 pt-0 dark:bg-ray-bg sm:grid-cols-4">
         <LiveCard label="Bruto / kg"  value={formatCLP(brutoPorKilo)}    sub="materia prima" />
         <LiveCard label="Baño / kg"   value={formatCLP(banoPorKilo)}     sub="procesamiento" />
         <LiveCard label="Aduana / kg" value={formatCLP(aduanaPorKilo)}   sub="derechos" />

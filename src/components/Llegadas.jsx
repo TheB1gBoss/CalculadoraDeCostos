@@ -22,8 +22,8 @@ export default function Llegadas({ estado }) {
   return (
     <div className="space-y-4">
 
-      {/* Banner en vivo */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {/* Banner en vivo — sticky */}
+      <div className="sticky top-0 z-20 grid grid-cols-2 gap-3 bg-gray-50 pb-2 pt-0 dark:bg-ray-bg sm:grid-cols-4">
         <LiveCard label="Total kilos" value={formatKilos(kilos.total)} highlight />
         {CATS.map((cat) => (
           <LiveCard key={cat} label={cat} value={formatKilos(kilos[cat])} color={COLORS[cat]} darkColor={DARK_COLORS[cat]} />

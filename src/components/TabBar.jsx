@@ -1,16 +1,10 @@
-import {
-  BarChart3,
-  ClipboardList,
-  History,
-  TrendingUp,
-  Wallet,
-} from 'lucide-react'
+import { BarChart3, History, PackageCheck, ShoppingCart, Wrench } from 'lucide-react'
 
 export const TABS = [
-  { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-  { id: 'entrada', label: 'Entrada', icon: ClipboardList },
-  { id: 'proyecciones', label: 'Proyecciones', icon: TrendingUp },
-  { id: 'precios', label: 'Precios', icon: Wallet },
+  { id: 'compras', label: 'Compras', icon: ShoppingCart },
+  { id: 'costos', label: 'Costos', icon: Wrench },
+  { id: 'llegadas', label: 'Llegadas', icon: PackageCheck },
+  { id: 'resumen', label: 'Resumen', icon: BarChart3 },
   { id: 'historial', label: 'Historial', icon: History },
 ]
 

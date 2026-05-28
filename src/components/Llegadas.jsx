@@ -1,0 +1,161 @@
+import { PackageCheck, Plus, Trash2 } from 'lucide-react'
+import { formatCLP, formatKilos, parseNumeroFlexible } from '../lib/formato.js'
+
+const CATS = ['MICRO', 'CADENA', 'ORO GF']
+const COLORS = { MICRO: '#0066cc', CADENA: '#10b981', 'ORO GF': '#f59e0b' }
+
+export default function Llegadas({ estado }) {
+  const { mesData, updateMes, indicadores } = estado
+  const bloques = mesData.llegadas_mercaderia_por_bloque || []
+  const { kilos } = indicadores
+
+  const onChange = (next) => updateMes({ llegadas_mercaderia_por_bloque: next })
+  const addBloque = () => onChange([...bloques, { MICRO: 0, CADENA: 0, 'ORO GF': 0 }])
+  const removeBloque = (idx) => onChange(bloques.filter((_, i) => i !== idx))
+  const updateBloque = (idx, cat, raw) => {
+    const next = bloques.slice()
+    next[idx] = { ...next[idx], [cat]: parseNumeroFlexible(raw) }
+    onChange(next)
+  }
+
+  return (
+    <div className="space-y-4">
+
+      {/* Banner en vivo */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <LiveCard label="Total kilos" value={formatKilos(kilos.total)} highlight />
+        {CATS.map((cat) => (
+          <LiveCard key={cat} label={cat} value={formatKilos(kilos[cat])} color={COLORS[cat]} />
+        ))}
+      </div>
+
+      {/* Bloques de llegada */}
+      <section className="card p-4">
+        <div className="mb-3 flex items-center gap-2">
+          <PackageCheck size={16} className="text-brand-500" />
+          <h2 className="text-sm font-semibold text-gray-900">Llegadas de mercadería</h2>
+          <span className="ml-auto rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
+            {bloques.length} embarques
+          </span>
+        </div>
+
+        {bloques.length === 0 && (
+          <p className="py-4 text-center text-xs text-gray-400">
+            Sin bloques de llegada todavía. Agrega el primer embarque.
+          </p>
+        )}
+
+        <ul className="space-y-2">
+          {bloques.map((b, idx) => (
+            <li
+              key={idx}
+              className="grid grid-cols-[auto_1fr_1fr_1fr_auto] items-end gap-3 rounded-xl border border-gray-200 px-3 py-3"
+            >
+              <span className="mb-1 text-xs font-bold text-gray-400">#{idx + 1}</span>
+              {CATS.map((cat) => (
+                <label key={cat} className="block">
+                  <span
+                    className="mb-1 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide"
+                    style={{ color: COLORS[cat] }}
+                  >
+                    <span
+                      className="inline-block h-2 w-2 rounded-full"
+                      style={{ background: COLORS[cat] }}
+                    />
+                    {cat}
+                  </span>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={b[cat] ?? 0}
+                    onChange={(e) => updateBloque(idx, cat, e.target.value)}
+                    className="input"
+                    placeholder="0,000"
+                  />
+                </label>
+              ))}
+              <button
+                type="button"
+                onClick={() => removeBloque(idx)}
+                className="mb-1 rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                aria-label="Eliminar embarque"
+              >
+                <Trash2 size={16} />
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        <button
+          type="button"
+          onClick={addBloque}
+          className="btn-secondary mt-3 w-full sm:w-auto"
+        >
+          <Plus size={16} aria-hidden /> Agregar embarque
+        </button>
+      </section>
+
+      {/* Precios ponderados por categoría */}
+      <section className="card p-4">
+        <div className="mb-3">
+          <h2 className="text-sm font-semibold text-gray-900">Precios ponderados de venta</h2>
+          <p className="text-xs text-gray-400">Usado para calcular el indicador de fabricación en Resumen</p>
+        </div>
+        <PreciosPonderados
+          valores={mesData.costos_ponderados_por_kilo || {}}
+          onChange={(obj) => updateMes({ costos_ponderados_por_kilo: obj })}
+        />
+      </section>
+    </div>
+  )
+}
+
+function LiveCard({ label, value, highlight, color }) {
+  return (
+    <div className={`card p-3 text-center ${highlight ? 'bg-brand-50 border-brand-200' : ''}`}>
+      <p
+        className={`text-xs font-semibold uppercase tracking-wide ${highlight ? 'text-brand-600' : 'text-gray-500'}`}
+        style={color ? { color } : undefined}
+      >
+        {label}
+      </p>
+      <p className={`mt-1 text-xl font-bold ${highlight ? 'text-brand-700' : 'text-gray-900'}`}>
+        {value}
+      </p>
+    </div>
+  )
+}
+
+function PreciosPonderados({ valores, onChange }) {
+  const get = (k) => valores[k] ?? valores[k === 'MICRO' ? 'MICROZIRCON' : ''] ?? 0
+  const set = (k, raw) => onChange({ ...valores, [k]: parseNumeroFlexible(raw) })
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-3">
+      {CATS.map((cat) => (
+        <label key={cat} className="block">
+          <span
+            className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide"
+            style={{ color: COLORS[cat] }}
+          >
+            <span className="inline-block h-2 w-2 rounded-full" style={{ background: COLORS[cat] }} />
+            {cat}
+          </span>
+          <div className="relative">
+            <input
+              type="text"
+              inputMode="decimal"
+              value={get(cat)}
+              onChange={(e) => set(cat, e.target.value)}
+              className="input pr-12"
+            />
+            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+              /kg
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-gray-500">{formatCLP(get(cat))}</p>
+        </label>
+      ))}
+    </div>
+  )
+}

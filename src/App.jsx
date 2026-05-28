@@ -2,15 +2,15 @@ import { useState } from 'react'
 import { Coins } from 'lucide-react'
 import TabBar from './components/TabBar.jsx'
 import MesSelector from './components/MesSelector.jsx'
+import Compras from './components/Compras.jsx'
+import Costos from './components/Costos.jsx'
+import Llegadas from './components/Llegadas.jsx'
 import Dashboard from './components/Dashboard.jsx'
-import EntradaDatos from './components/EntradaDatos.jsx'
-import Proyecciones from './components/Proyecciones.jsx'
-import PreciosSugeridos from './components/PreciosSugeridos.jsx'
 import Historial from './components/Historial.jsx'
 import { useEstado } from './lib/useEstado.js'
 
 export default function App() {
-  const [tab, setTab] = useState('dashboard')
+  const [tab, setTab] = useState('compras')
   const estado = useEstado()
 
   return (
@@ -49,11 +49,11 @@ export default function App() {
       </header>
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-4 pb-24 md:px-6 md:py-6 md:pb-6">
-        {tab === 'dashboard' && <Dashboard estado={estado} />}
-        {tab === 'entrada' && <EntradaDatos estado={estado} />}
-        {tab === 'proyecciones' && <Proyecciones estado={estado} />}
-        {tab === 'precios' && <PreciosSugeridos estado={estado} />}
-        {tab === 'historial' && <Historial estado={estado} />}
+        {tab === 'compras'  && <Compras  estado={estado} />}
+        {tab === 'costos'   && <Costos   estado={estado} />}
+        {tab === 'llegadas' && <Llegadas estado={estado} />}
+        {tab === 'resumen'  && <Dashboard estado={estado} />}
+        {tab === 'historial'&& <Historial estado={estado} />}
       </main>
 
       <div className="md:hidden">

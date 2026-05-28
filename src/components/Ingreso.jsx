@@ -23,7 +23,7 @@ export default function Ingreso({ estado }) {
         <LiveCard label="Kilos"        value={formatKilos(kilos.total)} sub="llegadas" />
       </div>
 
-      <Accordion title="BRUTO" subtitle="Compras de materia prima en R$" icon={ShoppingCart} defaultOpen badge={mesData.compras_bruto?.length || 0}>
+      <Accordion title="Compras de Bruto" icon={ShoppingCart} defaultOpen>
         <QuickAdd
           fields={[
             { key: 'fecha',        label: 'Fecha',    type: 'date',   default: today() },
@@ -35,7 +35,7 @@ export default function Ingreso({ estado }) {
         />
       </Accordion>
 
-      <Accordion title="PAGOS" subtitle="Pagos al exterior — define el tipo de cambio" icon={Banknote} badge={mesData.pagos?.length || 0}>
+      <Accordion title="Pagos Realizados" icon={Banknote}>
         <QuickAdd
           fields={[
             { key: 'fecha',    label: 'Fecha',       type: 'date',   default: today() },
@@ -46,7 +46,7 @@ export default function Ingreso({ estado }) {
         />
       </Accordion>
 
-      <Accordion title="SERVICIOS" subtitle="Otros servicios en R$" icon={Wrench} badge={mesData.servicios_completados?.length || 0}>
+      <Accordion title="Servicios de Fabricación" icon={Wrench}>
         <QuickAdd
           fields={[
             { key: 'fecha',        label: 'Fecha',    type: 'date',   default: today() },
@@ -57,7 +57,7 @@ export default function Ingreso({ estado }) {
         />
       </Accordion>
 
-      <Accordion title="ADUANA" subtitle="Pagos de aduana en CLP" icon={Package} badge={mesData.pagos_aduana?.length || 0}>
+      <Accordion title="Pagos a Aduana" icon={Package}>
         <QuickAdd
           fields={[
             { key: 'fecha',     label: 'Fecha',     type: 'date',   default: today() },
@@ -69,7 +69,7 @@ export default function Ingreso({ estado }) {
         />
       </Accordion>
 
-      <Accordion title="BAÑOS" subtitle="Procesamiento de mercadería en R$" icon={Droplet} badge={mesData.banos_completados?.length || 0}>
+      <Accordion title="Baños Procesados" icon={Droplet}>
         <QuickAdd
           fields={[
             { key: 'fecha',     label: 'Fecha',    type: 'date',   default: today() },
@@ -81,7 +81,7 @@ export default function Ingreso({ estado }) {
         />
       </Accordion>
 
-      <Accordion title="LLEGADA DE KILOS" subtitle="Kilos recibidos por categoría" icon={PackageCheck} badge={mesData.llegadas_mercaderia_por_bloque?.length || 0}>
+      <Accordion title="Kilos Llegados" icon={PackageCheck}>
         <LlegadasAdd onAdd={(row) => addRow('llegadas_mercaderia_por_bloque', row)} />
       </Accordion>
 

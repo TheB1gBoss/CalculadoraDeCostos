@@ -30,14 +30,6 @@ export default function App() {
             </h1>
             <p className="text-xs text-gray-500 dark:text-slate-400">Inversiones Aravena SPA</p>
           </div>
-          <div className="hidden w-64 md:block">
-            <MesSelector
-              mesActivo={estado.mesActivo}
-              mesesOrdenados={estado.mesesOrdenados}
-              onChange={estado.setMesActivo}
-              onCrear={estado.crearMes}
-            />
-          </div>
           <button
             type="button"
             onClick={() => setDark((d) => !d)}
@@ -47,7 +39,11 @@ export default function App() {
             {dark ? <Sun size={18} /> : <Moon size={18} />}
           </button>
         </div>
-        <div className="md:hidden mx-auto max-w-5xl px-4 pb-2">
+        <TabBar activo={tab} onChange={setTab} />
+      </header>
+
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-4 md:px-6 md:py-6">
+        <div className="mb-4">
           <MesSelector
             mesActivo={estado.mesActivo}
             mesesOrdenados={estado.mesesOrdenados}
@@ -55,10 +51,6 @@ export default function App() {
             onCrear={estado.crearMes}
           />
         </div>
-        <TabBar activo={tab} onChange={setTab} />
-      </header>
-
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-4 md:px-6 md:py-6">
         {tab === 'ingreso'   && <Ingreso   estado={estado} />}
         {tab === 'resumen'   && <Dashboard estado={estado} />}
         {tab === 'historial' && <Historial estado={estado} />}

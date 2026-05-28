@@ -105,15 +105,15 @@ function QuickAdd({ fields, onAdd }) {
             <span className="label">{f.label}</span>
 
             {f.type === 'date' ? (
-              /* ── Date: centrado, con ícono ── */
+              /* ── Date: centrado ── */
               <div className="relative">
-                <Calendar size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ray-cyan dark:text-ray-cyan" />
                 <input
                   type="date"
                   value={form[f.key]}
                   onChange={(e) => set(f.key, e.target.value)}
-                  className="input cursor-pointer pl-9 text-center font-semibold tracking-wide"
+                  className="input text-center font-semibold tracking-wide cursor-pointer"
                 />
+                <Calendar size={13} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-ray-cyan" />
               </div>
             ) : f.prefix ? (
               /* ── Número con prefijo (R$, $, kg) ── */

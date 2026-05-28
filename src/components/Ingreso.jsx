@@ -1,27 +1,19 @@
 import { useState } from 'react'
 import { Banknote, Droplet, Package, PackageCheck, Plus, ShoppingCart, Wrench } from 'lucide-react'
 import Accordion from './Accordion.jsx'
-import { formatCLP, formatKilos, formatNumero, parseNumeroFlexible } from '../lib/formato.js'
+import { parseNumeroFlexible } from '../lib/formato.js'
 
 const today = () => new Date().toISOString().slice(0, 10)
 const CATS = ['MICRO', 'CADENA', 'ORO GF']
 
 export default function Ingreso({ estado }) {
-  const { mesData, updateMes, indicadores } = estado
-  const { tipoCambio, costoTotalPorKilo, kilos } = indicadores
+  const { mesData, updateMes } = estado
 
   const addRow = (key, row) =>
     updateMes({ [key]: [...(mesData[key] || []), { ...row, _ts: Date.now() }] })
 
   return (
     <div className="space-y-3">
-
-      {/* Banner en vivo — sticky */}
-      <div className="sticky top-0 z-20 grid grid-cols-3 gap-2 bg-gray-50 pb-2 dark:bg-ray-bg">
-        <LiveCard label="TC Ponderado" value={tipoCambio ? formatNumero(tipoCambio, 2) : '—'} sub="CLP/R$" highlight />
-        <LiveCard label="Costo / kg"   value={formatCLP(costoTotalPorKilo)} sub="total" />
-        <LiveCard label="Kilos"        value={formatKilos(kilos.total)} sub="llegadas" />
-      </div>
 
       <Accordion title="Compras de Bruto" icon={ShoppingCart} defaultOpen>
         <QuickAdd
@@ -166,19 +158,3 @@ function LlegadasAdd({ onAdd }) {
   )
 }
 
-function LiveCard({ label, value, sub, highlight }) {
-  return (
-    <div className={[
-      'card p-2.5 text-center',
-      highlight ? 'bg-brand-50 border-brand-200 dark:bg-ray-cyan-dim dark:border-ray-cyan/30 dark:shadow-glow-sm' : '',
-    ].join(' ')}>
-      <p className={`text-[10px] font-semibold uppercase tracking-wide ${highlight ? 'text-brand-600 dark:text-ray-cyan' : 'text-gray-500 dark:text-slate-400'}`}>
-        {label}
-      </p>
-      <p className={`mt-0.5 text-base font-bold leading-tight ${highlight ? 'text-brand-700 dark:text-ray-cyan' : 'text-gray-900 dark:text-white'}`}>
-        {value}
-      </p>
-      {sub && <p className="text-[10px] text-gray-400 dark:text-slate-500">{sub}</p>}
-    </div>
-  )
-}

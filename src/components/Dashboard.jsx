@@ -1,12 +1,15 @@
 import { AlertTriangle, Coins, Scale, TrendingDown, TrendingUp } from 'lucide-react'
+import { useState } from 'react'
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 import { formatCLP, formatKilos, formatNumero } from '../lib/formato.js'
+import { parseNumeroFlexible } from '../lib/formato.js'
+import { normalizarPorCategoria } from '../lib/calculos.js'
 
 const COLORS = { MICRO: '#0066cc', CADENA: '#10b981', 'ORO GF': '#f59e0b' }
 const DARK_COLORS = { MICRO: '#00d4ff', CADENA: '#34d399', 'ORO GF': '#fbbf24' }
 
 export default function Dashboard({ estado }) {
-  const { indicadores, mesData } = estado
+  const { indicadores, mesData, setPreciosPonderados } = estado
   const {
     tipoCambio, brutoPorKilo, banoPorKilo, aduanaPorKilo,
     costoTotalPorKilo, indicadorFabricacion, ventasPonderadas, costoTotalKilos, kilos,
@@ -90,6 +93,12 @@ export default function Dashboard({ estado }) {
         </article>
       </section>
 
+      {/* Precios ponderados editables */}
+      <PreciosPonderados
+        valores={mesData.costos_ponderados_por_kilo || {}}
+        onGuardar={setPreciosPonderados}
+      />
+
       <section className="grid gap-4 lg:grid-cols-3">
 
         {/* TC ponderado */}
@@ -163,6 +172,63 @@ function Linea({ label, valor }) {
       <span>{label}</span>
       <span className="font-medium text-gray-900 dark:text-white">{formatCLP(valor)}</span>
     </li>
+  )
+}
+
+function PreciosPonderados({ valores, onGuardar }) {
+  const norm = normalizarPorCategoria(valores)
+  const fmt = (v) => (v ? String(Math.round(v)) : '')
+  const [form, setForm] = useState({
+    MICRO:    fmt(norm.MICRO),
+    CADENA:   fmt(norm.CADENA),
+    'ORO GF': fmt(norm['ORO GF']),
+  })
+  const [guardado, setGuardado] = useState(false)
+
+  const set = (k, v) => { setForm((p) => ({ ...p, [k]: v })); setGuardado(false) }
+
+  const handleGuardar = () => {
+    onGuardar({
+      MICRO:    parseNumeroFlexible(form.MICRO),
+      CADENA:   parseNumeroFlexible(form.CADENA),
+      'ORO GF': parseNumeroFlexible(form['ORO GF']),
+    })
+    setGuardado(true)
+  }
+
+  return (
+    <article className="card p-5">
+      <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-400 mb-3">
+        Precios ponderados por kg
+      </p>
+      <div className="grid grid-cols-3 gap-3">
+        {['MICRO', 'CADENA', 'ORO GF'].map((cat) => (
+          <label key={cat} className="block">
+            <span className="label">{cat}</span>
+            <div className="relative">
+              <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-ray-cyan select-none">$</span>
+              <input
+                type="text" inputMode="numeric"
+                value={form[cat]}
+                onChange={(e) => set(cat, e.target.value)}
+                className="input pl-6"
+              />
+            </div>
+          </label>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={handleGuardar}
+        className={`mt-3 w-full rounded-xl px-4 py-2 text-sm font-medium transition ${
+          guardado
+            ? 'bg-emerald-500 text-white'
+            : 'btn-primary'
+        }`}
+      >
+        {guardado ? '✓ Guardado' : 'Guardar precios'}
+      </button>
+    </article>
   )
 }
 

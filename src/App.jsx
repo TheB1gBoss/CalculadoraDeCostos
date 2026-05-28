@@ -8,7 +8,12 @@ import Historial from './components/Historial.jsx'
 import { useEstado } from './lib/useEstado.js'
 
 export default function App() {
-  const [tab, setTab] = useState('ingreso')
+  const [tab, setTab] = useState(() => localStorage.getItem('activeTab') || 'ingreso')
+
+  const handleTabChange = (t) => {
+    setTab(t)
+    localStorage.setItem('activeTab', t)
+  }
   const estado = useEstado()
   const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark')
 
@@ -39,7 +44,7 @@ export default function App() {
             {dark ? <Sun size={18} /> : <Moon size={18} />}
           </button>
         </div>
-        <TabBar activo={tab} onChange={setTab} />
+        <TabBar activo={tab} onChange={handleTabChange} />
       </header>
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-4 md:px-6 md:py-6">

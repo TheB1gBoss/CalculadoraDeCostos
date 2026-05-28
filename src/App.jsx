@@ -2,28 +2,19 @@ import { useEffect, useState } from 'react'
 import { Coins, Moon, Sun } from 'lucide-react'
 import TabBar from './components/TabBar.jsx'
 import MesSelector from './components/MesSelector.jsx'
-import Compras from './components/Compras.jsx'
-import Costos from './components/Costos.jsx'
-import Llegadas from './components/Llegadas.jsx'
+import Ingreso from './components/Ingreso.jsx'
 import Dashboard from './components/Dashboard.jsx'
 import Historial from './components/Historial.jsx'
 import { useEstado } from './lib/useEstado.js'
 
 export default function App() {
-  const [tab, setTab] = useState('compras')
+  const [tab, setTab] = useState('ingreso')
   const estado = useEstado()
-
   const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark')
 
   useEffect(() => {
-    const root = document.documentElement
-    if (dark) {
-      root.classList.add('dark')
-      localStorage.setItem('theme', 'dark')
-    } else {
-      root.classList.remove('dark')
-      localStorage.setItem('theme', 'light')
-    }
+    document.documentElement.classList.toggle('dark', dark)
+    localStorage.setItem('theme', dark ? 'dark' : 'light')
   }, [dark])
 
   return (
@@ -39,7 +30,7 @@ export default function App() {
             </h1>
             <p className="text-xs text-gray-500 dark:text-slate-400">Inversiones Aravena SPA</p>
           </div>
-          <div className="hidden w-72 md:block">
+          <div className="hidden w-64 md:block">
             <MesSelector
               mesActivo={estado.mesActivo}
               mesesOrdenados={estado.mesesOrdenados}
@@ -52,12 +43,11 @@ export default function App() {
             onClick={() => setDark((d) => !d)}
             className="ml-1 rounded-xl p-2 text-gray-500 hover:bg-gray-100 dark:text-slate-400 dark:hover:bg-[#101f38] transition"
             aria-label="Cambiar tema"
-            title={dark ? 'Modo claro' : 'Modo oscuro'}
           >
             {dark ? <Sun size={18} /> : <Moon size={18} />}
           </button>
         </div>
-        <div className="md:hidden mx-auto max-w-5xl px-4 pb-3">
+        <div className="md:hidden mx-auto max-w-5xl px-4 pb-2">
           <MesSelector
             mesActivo={estado.mesActivo}
             mesesOrdenados={estado.mesesOrdenados}
@@ -69,9 +59,7 @@ export default function App() {
       </header>
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-4 md:px-6 md:py-6">
-        {tab === 'compras'   && <Compras  estado={estado} />}
-        {tab === 'costos'    && <Costos   estado={estado} />}
-        {tab === 'llegadas'  && <Llegadas estado={estado} />}
+        {tab === 'ingreso'   && <Ingreso   estado={estado} />}
         {tab === 'resumen'   && <Dashboard estado={estado} />}
         {tab === 'historial' && <Historial estado={estado} />}
       </main>

@@ -1,7 +1,5 @@
-import { AlertTriangle, Calendar, Download, FileSpreadsheet, Plus, Trash2, Upload } from 'lucide-react'
-import { useRef } from 'react'
+import { AlertTriangle, Calendar, Trash2 } from 'lucide-react'
 import { calcularIndicadores } from '../lib/calculos.js'
-import { exportarWorkbook, importarWorkbook } from '../lib/excel.js'
 import { formatCLP, formatKilos, formatMes, formatReales } from '../lib/formato.js'
 
 const CAT_LABEL = {
@@ -47,8 +45,7 @@ function rowSummary(key, r) {
 }
 
 export default function Historial({ estado }) {
-  const { state, setState, mesActivo, mesData, mesesOrdenados, setMesActivo, eliminarMes, crearMes } = estado
-  const fileInputRef = useRef(null)
+  const { state, mesActivo, mesData, mesesOrdenados, setMesActivo, eliminarMes } = estado
 
   /* Registro de entradas del mes activo ordenado por timestamp */
   const logEntries = []
@@ -64,37 +61,13 @@ export default function Historial({ estado }) {
     estado.updateMes({ [key]: next })
   }
 
-  const handleNuevoMes = () => {
-    const siguiente = (() => {
-      if (!mesActivo) {
-        const d = new Date()
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-      }
-      const [y, m] = mesActivo.split('-').map(Number)
-      const d = new Date(y, m, 1)
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    })()
-    const k = window.prompt('Nuevo mes (formato AAAA-MM):', siguiente)
-    if (k && /^\d{4}-\d{2}$/.test(k)) crearMes(k)
-  }
-
   const handleEliminar = (key) => {
     if (mesesOrdenados.length <= 1) { alert('No puedes eliminar el último mes guardado.'); return }
     if (confirm(`¿Eliminar el mes ${formatMes(key)}?`)) eliminarMes(key)
   }
 
-  const handleExport    = (key) => exportarWorkbook(state, key)
-  const handleExportAll = () => exportarWorkbook(state, null)
-  const handleImportClick = () => fileInputRef.current?.click()
-
-  const handleImportFile = async (e) => {
-    const file = e.target.files?.[0]; if (!file) return
-    try {
-      setState(await importarWorkbook(file, state))
-      alert('Importación completada.')
-    } catch (err) {
-      alert(`Error al importar: ${err.message}`)
-    } finally { e.target.value = '' }
+  const handleExport = (key) => {
+    import('../lib/excel.js').then(({ exportarWorkbook }) => exportarWorkbook(state, key))
   }
 
   return (
@@ -102,21 +75,7 @@ export default function Historial({ estado }) {
 
       {/* — Meses guardados — */}
       <section className="card p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Meses guardados</h2>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={handleNuevoMes} className="btn-primary">
-              <Plus size={16} /> Nuevo mes
-            </button>
-            <button type="button" onClick={handleExportAll} className="btn-secondary">
-              <FileSpreadsheet size={16} /> Exportar todo
-            </button>
-            <button type="button" onClick={handleImportClick} className="btn-secondary">
-              <Upload size={16} /> Importar Excel
-            </button>
-            <input ref={fileInputRef} type="file" accept=".xlsx,.xls" onChange={handleImportFile} className="hidden" />
-          </div>
-        </div>
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Meses guardados</h2>
       </section>
 
       {mesesOrdenados.length > 0 && (

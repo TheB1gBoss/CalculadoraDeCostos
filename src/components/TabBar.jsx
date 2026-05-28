@@ -1,17 +1,19 @@
 import { BarChart3, History, PackageCheck, ShoppingCart, Wrench } from 'lucide-react'
 
 export const TABS = [
-  { id: 'compras', label: 'Compras', icon: ShoppingCart },
-  { id: 'costos', label: 'Costos', icon: Wrench },
-  { id: 'llegadas', label: 'Llegadas', icon: PackageCheck },
-  { id: 'resumen', label: 'Resumen', icon: BarChart3 },
-  { id: 'historial', label: 'Historial', icon: History },
+  { id: 'compras',   label: 'Compras',  icon: ShoppingCart },
+  { id: 'costos',    label: 'Costos',   icon: Wrench },
+  { id: 'llegadas',  label: 'Llegadas', icon: PackageCheck },
+  { id: 'resumen',   label: 'Resumen',  icon: BarChart3 },
+  { id: 'historial', label: 'Historial',icon: History },
 ]
 
 export default function TabBar({ activo, onChange }) {
   return (
     <nav
-      className="sticky bottom-0 z-30 border-t border-gray-200 bg-white/95 backdrop-blur md:static md:border-t-0 md:border-b md:bg-white"
+      className="sticky bottom-0 z-30 border-t border-gray-200 bg-white/95 backdrop-blur
+                 dark:border-ray-border dark:bg-ray-surface/95
+                 md:static md:border-t-0 md:border-b md:bg-white md:dark:bg-ray-surface"
       aria-label="Navegación principal"
     >
       <ul className="mx-auto flex max-w-5xl items-center justify-between gap-1 px-2 py-1 md:justify-start md:gap-2 md:px-6 md:py-2">
@@ -27,8 +29,8 @@ export default function TabBar({ activo, onChange }) {
                 className={[
                   'flex w-full flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 text-xs font-medium transition md:flex-row md:gap-2 md:px-4 md:py-2 md:text-sm',
                   active
-                    ? 'bg-brand-50 text-brand-600'
-                    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700',
+                    ? 'bg-brand-50 text-brand-600 dark:bg-ray-cyan-dim dark:text-ray-cyan'
+                    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-slate-400 dark:hover:bg-[#101f38] dark:hover:text-slate-200',
                 ].join(' ')}
               >
                 <Icon size={20} aria-hidden />

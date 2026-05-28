@@ -3,6 +3,7 @@ import { formatCLP, formatKilos, parseNumeroFlexible } from '../lib/formato.js'
 
 const CATS = ['MICRO', 'CADENA', 'ORO GF']
 const COLORS = { MICRO: '#0066cc', CADENA: '#10b981', 'ORO GF': '#f59e0b' }
+const DARK_COLORS = { MICRO: '#00d4ff', CADENA: '#34d399', 'ORO GF': '#fbbf24' }
 
 export default function Llegadas({ estado }) {
   const { mesData, updateMes, indicadores } = estado
@@ -25,23 +26,23 @@ export default function Llegadas({ estado }) {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <LiveCard label="Total kilos" value={formatKilos(kilos.total)} highlight />
         {CATS.map((cat) => (
-          <LiveCard key={cat} label={cat} value={formatKilos(kilos[cat])} color={COLORS[cat]} />
+          <LiveCard key={cat} label={cat} value={formatKilos(kilos[cat])} color={COLORS[cat]} darkColor={DARK_COLORS[cat]} />
         ))}
       </div>
 
       {/* Bloques de llegada */}
       <section className="card p-4">
         <div className="mb-3 flex items-center gap-2">
-          <PackageCheck size={16} className="text-brand-500" />
-          <h2 className="text-sm font-semibold text-gray-900">Llegadas de mercadería</h2>
-          <span className="ml-auto rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
+          <PackageCheck size={16} className="text-brand-500 dark:text-ray-cyan" />
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Llegadas de mercadería</h2>
+          <span className="ml-auto rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500 dark:bg-ray-bg dark:text-slate-400">
             {bloques.length} embarques
           </span>
         </div>
 
         {bloques.length === 0 && (
-          <p className="py-4 text-center text-xs text-gray-400">
-            Sin bloques de llegada todavía. Agrega el primer embarque.
+          <p className="py-4 text-center text-xs text-gray-400 dark:text-slate-600">
+            Sin bloques de llegada. Agrega el primer embarque.
           </p>
         )}
 
@@ -49,19 +50,13 @@ export default function Llegadas({ estado }) {
           {bloques.map((b, idx) => (
             <li
               key={idx}
-              className="grid grid-cols-[auto_1fr_1fr_1fr_auto] items-end gap-3 rounded-xl border border-gray-200 px-3 py-3"
+              className="grid grid-cols-[auto_1fr_1fr_1fr_auto] items-end gap-3 rounded-xl border border-gray-200 px-3 py-3 dark:border-ray-border"
             >
-              <span className="mb-1 text-xs font-bold text-gray-400">#{idx + 1}</span>
+              <span className="mb-1 text-xs font-bold text-gray-400 dark:text-slate-600">#{idx + 1}</span>
               {CATS.map((cat) => (
                 <label key={cat} className="block">
-                  <span
-                    className="mb-1 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide"
-                    style={{ color: COLORS[cat] }}
-                  >
-                    <span
-                      className="inline-block h-2 w-2 rounded-full"
-                      style={{ background: COLORS[cat] }}
-                    />
+                  <span className="mb-1 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-slate-400">
+                    <span className="inline-block h-2 w-2 rounded-full" style={{ background: COLORS[cat] }} />
                     {cat}
                   </span>
                   <input
@@ -77,7 +72,7 @@ export default function Llegadas({ estado }) {
               <button
                 type="button"
                 onClick={() => removeBloque(idx)}
-                className="mb-1 rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                className="mb-1 rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20 dark:hover:text-red-400"
                 aria-label="Eliminar embarque"
               >
                 <Trash2 size={16} />
@@ -86,20 +81,16 @@ export default function Llegadas({ estado }) {
           ))}
         </ul>
 
-        <button
-          type="button"
-          onClick={addBloque}
-          className="btn-secondary mt-3 w-full sm:w-auto"
-        >
+        <button type="button" onClick={addBloque} className="btn-secondary mt-3 w-full sm:w-auto">
           <Plus size={16} aria-hidden /> Agregar embarque
         </button>
       </section>
 
-      {/* Precios ponderados por categoría */}
+      {/* Precios ponderados */}
       <section className="card p-4">
         <div className="mb-3">
-          <h2 className="text-sm font-semibold text-gray-900">Precios ponderados de venta</h2>
-          <p className="text-xs text-gray-400">Usado para calcular el indicador de fabricación en Resumen</p>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Precios ponderados de venta</h2>
+          <p className="text-xs text-gray-400 dark:text-slate-500">Usado para calcular el indicador de fabricación en Resumen</p>
         </div>
         <PreciosPonderados
           valores={mesData.costos_ponderados_por_kilo || {}}
@@ -110,16 +101,19 @@ export default function Llegadas({ estado }) {
   )
 }
 
-function LiveCard({ label, value, highlight, color }) {
+function LiveCard({ label, value, highlight, color, darkColor }) {
   return (
-    <div className={`card p-3 text-center ${highlight ? 'bg-brand-50 border-brand-200' : ''}`}>
+    <div className={[
+      'card p-3 text-center',
+      highlight ? 'bg-brand-50 border-brand-200 dark:bg-ray-cyan-dim dark:border-ray-cyan/30 dark:shadow-glow-sm' : '',
+    ].join(' ')}>
       <p
-        className={`text-xs font-semibold uppercase tracking-wide ${highlight ? 'text-brand-600' : 'text-gray-500'}`}
-        style={color ? { color } : undefined}
+        className={`text-xs font-semibold uppercase tracking-wide ${highlight ? 'text-brand-600 dark:text-ray-cyan' : 'text-gray-500 dark:text-slate-400'}`}
+        style={color && !highlight ? { color } : undefined}
       >
         {label}
       </p>
-      <p className={`mt-1 text-xl font-bold ${highlight ? 'text-brand-700' : 'text-gray-900'}`}>
+      <p className={`mt-1 text-xl font-bold ${highlight ? 'text-brand-700 dark:text-ray-cyan' : 'text-gray-900 dark:text-white'}`}>
         {value}
       </p>
     </div>
@@ -134,10 +128,7 @@ function PreciosPonderados({ valores, onChange }) {
     <div className="grid gap-3 sm:grid-cols-3">
       {CATS.map((cat) => (
         <label key={cat} className="block">
-          <span
-            className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide"
-            style={{ color: COLORS[cat] }}
-          >
+          <span className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-slate-400">
             <span className="inline-block h-2 w-2 rounded-full" style={{ background: COLORS[cat] }} />
             {cat}
           </span>
@@ -149,11 +140,11 @@ function PreciosPonderados({ valores, onChange }) {
               onChange={(e) => set(cat, e.target.value)}
               className="input pr-12"
             />
-            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-slate-500">
               /kg
             </span>
           </div>
-          <p className="mt-1 text-xs text-gray-500">{formatCLP(get(cat))}</p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-slate-500">{formatCLP(get(cat))}</p>
         </label>
       ))}
     </div>

@@ -24,9 +24,9 @@ export default function App() {
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500 text-white dark:bg-ray-cyan dark:text-ray-bg dark:shadow-glow-sm">
             <Coins size={20} aria-hidden />
           </div>
-          <div className="flex-1">
-            <h1 className="text-base font-semibold leading-tight dark:text-white">
-              Calculadora Importaciones
+          <div className="flex-1 text-center">
+            <h1 className="text-base font-bold uppercase tracking-widest leading-tight dark:text-white">
+              Costos e Importación
             </h1>
             <p className="text-xs text-gray-500 dark:text-slate-400">Inversiones Aravena SPA</p>
           </div>

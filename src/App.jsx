@@ -65,22 +65,16 @@ export default function App() {
             onCrear={estado.crearMes}
           />
         </div>
-        <div className="hidden md:block">
-          <TabBar activo={tab} onChange={setTab} />
-        </div>
+        <TabBar activo={tab} onChange={setTab} />
       </header>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-4 pb-24 md:px-6 md:py-6 md:pb-6">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-4 md:px-6 md:py-6">
         {tab === 'compras'   && <Compras  estado={estado} />}
         {tab === 'costos'    && <Costos   estado={estado} />}
         {tab === 'llegadas'  && <Llegadas estado={estado} />}
         {tab === 'resumen'   && <Dashboard estado={estado} />}
         {tab === 'historial' && <Historial estado={estado} />}
       </main>
-
-      <div className="md:hidden">
-        <TabBar activo={tab} onChange={setTab} />
-      </div>
     </div>
   )
 }

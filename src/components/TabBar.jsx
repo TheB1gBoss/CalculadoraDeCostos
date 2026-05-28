@@ -11,9 +11,7 @@ export const TABS = [
 export default function TabBar({ activo, onChange }) {
   return (
     <nav
-      className="sticky bottom-0 z-30 border-t border-gray-200 bg-white/95 backdrop-blur
-                 dark:border-ray-border dark:bg-ray-surface/95
-                 md:static md:border-t-0 md:border-b md:bg-white md:dark:bg-ray-surface"
+      className="border-b border-gray-200 bg-white dark:border-ray-border dark:bg-ray-surface"
       aria-label="Navegación principal"
     >
       <ul className="mx-auto flex max-w-5xl items-center justify-between gap-1 px-2 py-1 md:justify-start md:gap-2 md:px-6 md:py-2">

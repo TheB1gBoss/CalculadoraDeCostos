@@ -69,11 +69,6 @@ export default function Historial({ estado }) {
   return (
     <div className="space-y-4">
 
-      {/* — Meses guardados — */}
-      <section className="card p-4">
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Meses guardados</h2>
-      </section>
-
       {mesesOrdenados.length > 0 && (
         <ul className="grid gap-3 sm:grid-cols-2">
           {[...mesesOrdenados].reverse().map((key) => {

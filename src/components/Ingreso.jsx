@@ -105,14 +105,21 @@ function QuickAdd({ fields, onAdd }) {
             <span className="label">{f.label}</span>
 
             {f.type === 'date' ? (
-              /* ── Date: ícono izquierda, texto centrado ── */
-              <div className="relative">
-                <Calendar size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ray-cyan" />
+              /* ── Date: texto centrado visible + picker invisible encima ──
+                 Safari iOS ignora text-align:center en type=date,
+                 solución: div visible centrado + input opacidad 0 encima */
+              <div className="input relative flex items-center cursor-pointer overflow-hidden">
+                <Calendar size={14} className="pointer-events-none shrink-0 text-ray-cyan" />
+                <span className="flex-1 text-center font-semibold tracking-wide dark:text-white">
+                  {form[f.key]
+                    ? form[f.key].split('-').reverse().join('-')
+                    : today().split('-').reverse().join('-')}
+                </span>
                 <input
                   type="date"
                   value={form[f.key]}
                   onChange={(e) => set(f.key, e.target.value)}
-                  className="input pl-9 pr-9 text-center font-semibold tracking-wide cursor-pointer"
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                 />
               </div>
             ) : f.prefix ? (

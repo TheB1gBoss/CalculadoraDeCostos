@@ -18,10 +18,10 @@ export default function Ingreso({ estado }) {
       <Accordion title="Compras de Bruto" icon={ShoppingCart} defaultOpen>
         <QuickAdd
           fields={[
-            { key: 'fecha',        label: 'Fecha',    type: 'date',   default: today() },
+            { key: 'fecha',        label: 'Fecha',     type: 'date',   default: today() },
             { key: 'detalle',      label: 'Proveedor', type: 'text',   placeholder: 'Nombre del proveedor' },
-            { key: 'kilos',        label: 'Kilos',    type: 'number', placeholder: '0,000' },
-            { key: 'total_reales', label: 'Total R$', type: 'number', placeholder: '0,00' },
+            { key: 'kilos',        label: 'Kilos',     type: 'number', placeholder: '0,000', prefix: 'kg' },
+            { key: 'total_reales', label: 'Total R$',  type: 'number', placeholder: '0,00',  prefix: 'R$' },
           ]}
           onAdd={(row) => addRow('compras_bruto', row)}
         />
@@ -31,8 +31,8 @@ export default function Ingreso({ estado }) {
         <QuickAdd
           fields={[
             { key: 'fecha',    label: 'Fecha',       type: 'date',   default: today() },
-            { key: 'reales',   label: 'R$ pagados',  type: 'number', placeholder: '0,00' },
-            { key: 'chilenos', label: 'CLP pagados', type: 'number', placeholder: '0' },
+            { key: 'reales',   label: 'R$ pagados',  type: 'number', placeholder: '0,00', prefix: 'R$' },
+            { key: 'chilenos', label: 'CLP pagados', type: 'number', placeholder: '0',    prefix: '$'  },
           ]}
           onAdd={(row) => addRow('pagos', row)}
         />
@@ -43,7 +43,7 @@ export default function Ingreso({ estado }) {
           fields={[
             { key: 'fecha',        label: 'Fecha',    type: 'date',   default: today() },
             { key: 'detalle',      label: 'Detalle',  type: 'text',   placeholder: 'Concepto' },
-            { key: 'total_reales', label: 'Total R$', type: 'number', placeholder: '0,00' },
+            { key: 'total_reales', label: 'Total R$', type: 'number', placeholder: '0,00', prefix: 'R$' },
           ]}
           onAdd={(row) => addRow('servicios_completados', row)}
         />
@@ -53,8 +53,8 @@ export default function Ingreso({ estado }) {
         <QuickAdd
           fields={[
             { key: 'fecha',     label: 'Fecha',     type: 'date',   default: today() },
-            { key: 'kilos',     label: 'Kilos',     type: 'number', placeholder: '0,000' },
-            { key: 'total_clp', label: 'Total CLP', type: 'number', placeholder: '0' },
+            { key: 'kilos',     label: 'Kilos',     type: 'number', placeholder: '0,000', prefix: 'kg' },
+            { key: 'total_clp', label: 'Total CLP', type: 'number', placeholder: '0',    prefix: '$'  },
           ]}
           onAdd={(row) => addRow('pagos_aduana', row)}
         />
@@ -63,9 +63,9 @@ export default function Ingreso({ estado }) {
       <Accordion title="Baños Procesados" icon={Droplet}>
         <QuickAdd
           fields={[
-            { key: 'fecha',     label: 'Fecha',    type: 'date',   default: today() },
-            { key: 'kilos',     label: 'Kilos',    type: 'number', placeholder: '0,000' },
-            { key: 'total_clp', label: 'Total CLP', type: 'number', placeholder: '0' },
+            { key: 'fecha',     label: 'Fecha',     type: 'date',   default: today() },
+            { key: 'kilos',     label: 'Kilos',     type: 'number', placeholder: '0,000', prefix: 'kg' },
+            { key: 'total_clp', label: 'Total CLP', type: 'number', placeholder: '0',    prefix: '$'  },
           ]}
           onAdd={(row) => addRow('banos_completados', row)}
         />
@@ -99,24 +99,41 @@ function QuickAdd({ fields, onAdd }) {
 
   return (
     <div className="space-y-3">
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2">
         {fields.map((f) => (
           <label key={f.key} className="block">
             <span className="label">{f.label}</span>
+
             {f.type === 'date' ? (
+              /* ── Date: centrado, con ícono ── */
               <div className="relative">
-                <Calendar size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500" />
+                <Calendar size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ray-cyan dark:text-ray-cyan" />
                 <input
                   type="date"
                   value={form[f.key]}
                   onChange={(e) => set(f.key, e.target.value)}
-                  className="input pl-8 font-medium"
+                  className="input cursor-pointer pl-9 text-center font-semibold tracking-wide"
+                />
+              </div>
+            ) : f.prefix ? (
+              /* ── Número con prefijo (R$, $, kg) ── */
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-ray-cyan dark:text-ray-cyan select-none">
+                  {f.prefix}
+                </span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={form[f.key]}
+                  placeholder={f.placeholder}
+                  onChange={(e) => set(f.key, e.target.value)}
+                  className="input pl-9"
                 />
               </div>
             ) : (
+              /* ── Texto normal ── */
               <input
                 type="text"
-                inputMode={f.type === 'number' ? 'decimal' : undefined}
                 value={form[f.key]}
                 placeholder={f.placeholder}
                 onChange={(e) => set(f.key, e.target.value)}
@@ -140,8 +157,8 @@ function LlegadasAdd({ onAdd }) {
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }))
   const handleAdd = () => {
     onAdd({
-      MICRO:  parseNumeroFlexible(form.MICRO),
-      CADENA: parseNumeroFlexible(form.CADENA),
+      MICRO:    parseNumeroFlexible(form.MICRO),
+      CADENA:   parseNumeroFlexible(form.CADENA),
       'ORO GF': parseNumeroFlexible(form['ORO GF']),
     })
     setForm(init())
@@ -152,12 +169,17 @@ function LlegadasAdd({ onAdd }) {
         {CATS.map((cat) => (
           <label key={cat} className="block">
             <span className="label">{cat}</span>
-            <input
-              type="text" inputMode="decimal"
-              value={form[cat]} placeholder="0,000"
-              onChange={(e) => set(cat, e.target.value)}
-              className="input"
-            />
+            <div className="relative">
+              <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-ray-cyan dark:text-ray-cyan select-none">
+                kg
+              </span>
+              <input
+                type="text" inputMode="decimal"
+                value={form[cat]} placeholder="0,000"
+                onChange={(e) => set(cat, e.target.value)}
+                className="input pl-7"
+              />
+            </div>
           </label>
         ))}
       </div>
@@ -167,4 +189,3 @@ function LlegadasAdd({ onAdd }) {
     </div>
   )
 }
-

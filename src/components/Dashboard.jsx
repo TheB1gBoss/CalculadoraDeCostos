@@ -177,7 +177,7 @@ function Linea({ label, valor }) {
 
 function PreciosPonderados({ valores, onGuardar }) {
   const norm = normalizarPorCategoria(valores)
-  const fmt = (v) => (v ? String(Math.round(v)) : '')
+  const fmt = (v) => (v ? Math.round(v).toLocaleString('es-CL') : '')
   const [form, setForm] = useState({
     MICRO:    fmt(norm.MICRO),
     CADENA:   fmt(norm.CADENA),

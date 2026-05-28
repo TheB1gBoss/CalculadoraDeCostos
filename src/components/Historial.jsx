@@ -45,7 +45,7 @@ function rowSummary(key, r) {
 }
 
 export default function Historial({ estado }) {
-  const { state, mesActivo, mesData, mesesOrdenados, setMesActivo, eliminarMes } = estado
+  const { mesActivo, mesData, mesesOrdenados, setMesActivo, eliminarMes, state } = estado
 
   /* Registro de entradas del mes activo ordenado por timestamp */
   const logEntries = []
@@ -64,10 +64,6 @@ export default function Historial({ estado }) {
   const handleEliminar = (key) => {
     if (mesesOrdenados.length <= 1) { alert('No puedes eliminar el último mes guardado.'); return }
     if (confirm(`¿Eliminar el mes ${formatMes(key)}?`)) eliminarMes(key)
-  }
-
-  const handleExport = (key) => {
-    import('../lib/excel.js').then(({ exportarWorkbook }) => exportarWorkbook(state, key))
   }
 
   return (
@@ -97,11 +93,6 @@ export default function Historial({ estado }) {
                     </div>
                   </button>
                   <div className="flex gap-1">
-                    <button type="button" onClick={() => handleExport(key)}
-                      className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-[#101f38] dark:hover:text-slate-200"
-                      title="Exportar">
-                      <Download size={16} />
-                    </button>
                     <button type="button" onClick={() => handleEliminar(key)}
                       className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20 dark:hover:text-red-400"
                       title="Eliminar mes">

@@ -1,4 +1,4 @@
-import { AlertTriangle, Calendar, Trash2 } from 'lucide-react'
+import { AlertTriangle, Calendar, Lock, Trash2, Unlock } from 'lucide-react'
 import { calcularIndicadores } from '../lib/calculos.js'
 import { formatCLP, formatKilos, formatMes, formatReales } from '../lib/formato.js'
 
@@ -58,6 +58,12 @@ export default function Historial({ estado }) {
 
   const handleEliminarEntrada = (key, idx) => {
     const next = (mesData[key] || []).filter((_, i) => i !== idx)
+    estado.updateMes({ [key]: next })
+  }
+
+  const handleToggleLock = (key, idx) => {
+    const arr = (mesData[key] || [])
+    const next = arr.map((r, i) => i === idx ? { ...r, _locked: !r._locked } : r)
     estado.updateMes({ [key]: next })
   }
 
@@ -122,12 +128,17 @@ export default function Historial({ estado }) {
           <ul className="space-y-1.5">
             {logEntries.map(({ key, idx, r, ts }, i) => {
               const label = CAT_LABEL[key]
+              const locked = !!r._locked
               return (
-                <li key={i} className="flex items-start gap-2 rounded-xl border border-gray-100 px-3 py-2.5 dark:border-ray-border">
-                  <span className={`mt-0.5 shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold ${CAT_COLOR[label]}`}>
+                <li key={i} className={`flex items-start gap-2 rounded-xl border px-3 py-2.5 transition-colors ${
+                  locked
+                    ? 'border-amber-300/40 bg-amber-900/10 dark:border-amber-700/30 dark:bg-amber-900/10'
+                    : 'border-gray-100 dark:border-ray-border'
+                }`}>
+                  <span className={`mt-0.5 shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold ${CAT_COLOR[label]} ${locked ? 'opacity-40' : ''}`}>
                     {label}
                   </span>
-                  <div className="flex-1 min-w-0">
+                  <div className={`flex-1 min-w-0 ${locked ? 'opacity-40' : ''}`}>
                     <p className="text-sm text-gray-800 dark:text-slate-200 truncate">
                       {rowSummary(key, r)}
                     </p>
@@ -136,7 +147,20 @@ export default function Historial({ estado }) {
                     ) : (
                       r.fecha && <p className="mt-0.5 text-xs text-gray-400 dark:text-slate-600">{r.fecha}</p>
                     )}
+                    {locked && <p className="mt-0.5 text-[10px] font-medium text-amber-500">Excluido del cálculo</p>}
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleLock(key, idx)}
+                    className={`shrink-0 rounded-lg p-1.5 transition-colors ${
+                      locked
+                        ? 'text-amber-500 hover:bg-amber-900/20'
+                        : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-[#101f38] dark:hover:text-slate-300'
+                    }`}
+                    aria-label={locked ? 'Desbloquear' : 'Bloquear'}
+                  >
+                    {locked ? <Lock size={14} /> : <Unlock size={14} />}
+                  </button>
                   <button
                     type="button"
                     onClick={() => handleEliminarEntrada(key, idx)}

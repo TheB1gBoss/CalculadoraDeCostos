@@ -152,13 +152,15 @@ export function indicadorFabricacion(kilosCat, preciosPonderados, costoTotal) {
  * @param {Array}  mes.pagos_aduana
  * @param {Object} mes.costos_ponderados_por_kilo
  */
+const unlock = (arr) => (arr || []).filter((r) => !r._locked)
+
 export function calcularIndicadores(mes) {
-  const tc = tipoCambioPonderado(mes.pagos)
-  const bruto = brutoPorKilo(mes.compras_bruto, mes.servicios_completados, tc)
-  const bano = banoPorKilo(mes.banos_completados, tc)
-  const aduana = aduanaPorKilo(mes.pagos_aduana)
+  const tc = tipoCambioPonderado(unlock(mes.pagos))
+  const bruto = brutoPorKilo(unlock(mes.compras_bruto), unlock(mes.servicios_completados), tc)
+  const bano = banoPorKilo(unlock(mes.banos_completados), tc)
+  const aduana = aduanaPorKilo(unlock(mes.pagos_aduana))
   const total = costoTotalPorKilo({ bruto, bano, aduana })
-  const kilos = kilosPorCategoria(mes.llegadas_mercaderia_por_bloque)
+  const kilos = kilosPorCategoria(unlock(mes.llegadas_mercaderia_por_bloque))
   const ind = indicadorFabricacion(
     kilos,
     mes.costos_ponderados_por_kilo || {},

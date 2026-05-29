@@ -142,10 +142,11 @@ export default function Historial({ estado }) {
                     <p className="text-sm text-gray-800 dark:text-slate-200 truncate">
                       {rowSummary(key, r)}
                     </p>
-                    {ts ? (
+                    {r.fecha && (
+                      <p className="mt-0.5 text-xs text-gray-400 dark:text-slate-600">{r.fecha}</p>
+                    )}
+                    {ts && !r.fecha && (
                       <p className="mt-0.5 text-xs text-gray-400 dark:text-slate-600">{fmtTs(ts)}</p>
-                    ) : (
-                      r.fecha && <p className="mt-0.5 text-xs text-gray-400 dark:text-slate-600">{r.fecha}</p>
                     )}
                     {locked && <p className="mt-0.5 text-[10px] font-medium text-amber-500">Excluido del cálculo</p>}
                   </div>

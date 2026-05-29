@@ -6,6 +6,31 @@ import Ingreso from './components/Ingreso.jsx'
 import Dashboard from './components/Dashboard.jsx'
 import Historial from './components/Historial.jsx'
 import { useEstado } from './lib/useEstado.js'
+import { formatCLP, formatNumero } from './lib/formato.js'
+
+function IndicadorBar({ indicadores }) {
+  const { indicadorFabricacion, costoTotalPorKilo, tipoCambio } = indicadores
+  if (!costoTotalPorKilo) return null
+  const pos = indicadorFabricacion >= 0
+  return (
+    <div className={`flex items-center justify-center gap-3 border-b px-4 py-1.5 text-xs ${
+      pos
+        ? 'border-emerald-900 bg-emerald-950/40'
+        : 'border-red-900 bg-red-950/40'
+    }`}>
+      <span className="text-slate-500">Indicador</span>
+      <span className={`font-bold tabular-nums ${pos ? 'text-emerald-400' : 'text-red-400'}`}>
+        {pos ? '+' : ''}{formatCLP(indicadorFabricacion)}
+      </span>
+      <span className="text-slate-700">·</span>
+      <span className="text-slate-500">Costo/kg</span>
+      <span className="font-semibold text-white tabular-nums">{formatCLP(costoTotalPorKilo)}</span>
+      <span className="text-slate-700">·</span>
+      <span className="text-slate-500">TC</span>
+      <span className="font-semibold text-white tabular-nums">{formatNumero(tipoCambio, 2)}</span>
+    </div>
+  )
+}
 
 export default function App() {
   const [tab, setTab] = useState(() => localStorage.getItem('activeTab') || 'ingreso')
@@ -44,6 +69,7 @@ export default function App() {
           </button>
         </div>
         <TabBar activo={tab} onChange={handleTabChange} />
+        <IndicadorBar indicadores={estado.indicadores} />
       </header>
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-4 md:px-6 md:py-6">

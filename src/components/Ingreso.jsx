@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Banknote, Calendar, Droplet, Package, PackageCheck, Plus, ShoppingCart, Wrench } from 'lucide-react'
+import { Banknote, Calendar, DollarSign, Droplet, Package, PackageCheck, Plus, ShoppingCart, Wrench } from 'lucide-react'
 import Accordion from './Accordion.jsx'
+import PreciosPonderados from './PreciosPonderados.jsx'
 import { parseNumeroFlexible } from '../lib/formato.js'
 
 const today = () => {
@@ -11,13 +12,20 @@ const today = () => {
 const CATS = ['MICRO', 'CADENA', 'ORO GF']
 
 export default function Ingreso({ estado }) {
-  const { mesData, updateMes } = estado
+  const { mesData, updateMes, setPreciosPonderados } = estado
 
   const addRow = (key, row) =>
     updateMes({ [key]: [...(mesData[key] || []), { ...row, _ts: Date.now() }] })
 
   return (
     <div className="space-y-3">
+
+      <Accordion title="Precios Ponderados por Kg" icon={DollarSign}>
+        <PreciosPonderados
+          valores={mesData.costos_ponderados_por_kilo || {}}
+          onGuardar={setPreciosPonderados}
+        />
+      </Accordion>
 
       <Accordion title="Compras de Bruto" icon={ShoppingCart}>
         <QuickAdd

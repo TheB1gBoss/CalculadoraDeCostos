@@ -1,20 +1,43 @@
-import { Coins, Scale, TrendingDown, TrendingUp } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { Scale, TrendingDown, TrendingUp } from 'lucide-react'
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
-import { MERMA_LLEGADAS, normalizarPorCategoria } from '../lib/calculos.js'
-import { formatCLP, formatFecha, formatKilos, formatNumero, parseNumeroFlexible } from '../lib/formato.js'
+import { calcularIndicadores, MERMA_LLEGADAS, normalizarPorCategoria, variacion } from '../lib/calculos.js'
+import { formatCLP, formatFecha, formatKilos, formatNumero, formatPct } from '../lib/formato.js'
 
 const CAT_COLORS = {
-  MICRO:   { light: '#0066cc', dark: '#00d4ff',  text: 'text-blue-400'    },
-  CADENA:  { light: '#10b981', dark: '#34d399',  text: 'text-emerald-400' },
-  'ORO GF':{ light: '#f59e0b', dark: '#fbbf24',  text: 'text-amber-400'   },
+  MICRO:    { dark: '#00d4ff', text: 'text-blue-400'    },
+  CADENA:   { dark: '#34d399', text: 'text-emerald-400' },
+  'ORO GF': { dark: '#fbbf24', text: 'text-amber-400'   },
+}
+
+/* ── Regresión lineal simple ── */
+function linReg(vals) {
+  const n = vals.length
+  if (n < 2) return null
+  const sx = n * (n - 1) / 2
+  const sx2 = vals.reduce((s, _, i) => s + i * i, 0)
+  const sy = vals.reduce((s, v) => s + v, 0)
+  const sxy = vals.reduce((s, v, i) => s + i * v, 0)
+  const slope = (n * sxy - sx * sy) / (n * sx2 - sx * sx)
+  const intercept = (sy - slope * sx) / n
+  return (x) => Math.max(0, slope * x + intercept)
+}
+
+function nextMonthKey(yyyyMm, offset) {
+  const [y, m] = yyyyMm.split('-').map(Number)
+  const d = new Date(y, m - 1 + offset, 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+function mesLabel(yyyyMm) {
+  const [y, m] = yyyyMm.split('-').map(Number)
+  return new Intl.DateTimeFormat('es-CL', { month: 'short', year: '2-digit' }).format(new Date(y, m - 1, 1))
 }
 
 export default function Dashboard({ estado }) {
-  const { indicadores, mesData, setPreciosPonderados } = estado
+  const { indicadores, mesData, mesesOrdenados, mesActivo, state } = estado
   const {
     tipoCambio, brutoPorKilo, banoPorKilo, aduanaPorKilo,
-    costoTotalPorKilo, indicadorFabricacion, ventasPonderadas, costoTotalKilos, kilos,
+    costoTotalPorKilo, indicadorFabricacion, kilos,
   } = indicadores
 
   const hayData = Object.values(mesData || {}).some((v) => Array.isArray(v) && v.length > 0)
@@ -22,84 +45,236 @@ export default function Dashboard({ estado }) {
   if (!hayData) {
     return (
       <div className="card p-8 text-center">
-        <Coins className="mx-auto mb-3 text-ray-cyan opacity-40" size={32} />
-        <h2 className="text-lg font-semibold text-white">Sin datos en este mes</h2>
-        <p className="mt-1 text-sm text-slate-400">
-          Ve a <span className="font-medium text-ray-cyan">Ingreso</span> y registra compras y pagos.
-        </p>
+        <p className="text-lg font-semibold text-white">Sin datos en este mes</p>
+        <p className="mt-1 text-sm text-slate-400">Ve a <span className="font-medium text-ray-cyan">Ingreso</span> y registra compras y pagos.</p>
       </div>
     )
   }
 
-  const pos = indicadorFabricacion >= 0
-  const indCls = pos
-    ? 'border-emerald-800 bg-emerald-900/20 text-emerald-400'
-    : 'border-red-800 bg-red-900/20 text-red-400'
+  /* ── Historial de meses calculado ── */
+  const historial = mesesOrdenados.map((key) => ({ key, ind: calcularIndicadores(state.meses[key]) }))
+  const currentIdx = mesesOrdenados.indexOf(mesActivo)
+  const prevInd = currentIdx > 0 ? historial[currentIdx - 1].ind : null
 
-  const dataPie = [
-    { name: 'MICRO',   value: kilos.MICRO    || 0 },
-    { name: 'CADENA',  value: kilos.CADENA   || 0 },
-    { name: 'ORO GF',  value: kilos['ORO GF']|| 0 },
-  ].filter((d) => d.value > 0)
+  /* ── Proyección por regresión ── */
+  const tcVals    = historial.map((h) => h.ind.tipoCambio)
+  const costoVals = historial.map((h) => h.ind.costoTotalPorKilo)
+  const tcFn      = linReg(tcVals)
+  const costoFn   = linReg(costoVals)
+  const n         = historial.length
+  const lastKey   = mesesOrdenados[mesesOrdenados.length - 1]
+  const proyecciones = [1, 2, 3].map((off) => ({
+    key:   nextMonthKey(lastKey, off),
+    tc:    tcFn    ? tcFn(n - 1 + off)    : null,
+    costo: costoFn ? costoFn(n - 1 + off) : null,
+  }))
+
+  /* ── Márgenes por categoría ── */
+  const precios = normalizarPorCategoria(mesData.costos_ponderados_por_kilo || {})
+  const margenes = ['MICRO', 'CADENA', 'ORO GF'].map((cat) => {
+    const precio = precios[cat] || 0
+    const margen = precio - costoTotalPorKilo
+    const margenPct = costoTotalPorKilo ? margen / costoTotalPorKilo : 0
+    return { cat, precio, margen, margenPct, ok: margen >= 0 }
+  })
+
+  /* ── Pie chart ── */
+  const dataPie = ['MICRO', 'CADENA', 'ORO GF']
+    .map((cat) => ({ name: cat, value: kilos[cat] || 0 }))
+    .filter((d) => d.value > 0)
+
+  const pos = indicadorFabricacion >= 0
 
   return (
     <div className="space-y-4">
 
-      {/* ── Fila superior: Costo/kg + Indicador ── */}
-      <div className="grid gap-4 sm:grid-cols-2">
+      {/* ── 1. Indicador de fabricación (solo número) ── */}
+      <article className={`card border p-5 ${pos
+        ? 'border-emerald-800 bg-emerald-900/20 text-emerald-400'
+        : 'border-red-800 bg-red-900/20 text-red-400'}`}>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Indicador de fabricación</p>
+            <p className="mt-1 text-4xl font-bold tracking-tight">
+              {pos ? '+' : ''}{formatCLP(indicadorFabricacion)}
+            </p>
+          </div>
+          <div className="rounded-xl bg-white/10 p-3">
+            {pos ? <TrendingUp size={24} /> : <TrendingDown size={24} />}
+          </div>
+        </div>
+      </article>
 
+      {/* ── 2. Costo por kg desglosado ── */}
+      <article className="card p-5">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">Costo total / kg</p>
+        <p className="text-3xl font-bold text-white mb-4">{formatCLP(costoTotalPorKilo)}</p>
+        <ul className="divide-y divide-ray-border">
+          {[
+            { label: 'Bruto',  val: brutoPorKilo,  color: 'bg-blue-500'   },
+            { label: 'Baño',   val: banoPorKilo,   color: 'bg-cyan-500'   },
+            { label: 'Aduana', val: aduanaPorKilo, color: 'bg-orange-500' },
+          ].map(({ label, val, color }) => (
+            <li key={label} className="py-2">
+              <div className="flex justify-between text-sm mb-1.5">
+                <span className="text-slate-400">{label}</span>
+                <span className="font-medium text-white">{formatCLP(val)}</span>
+              </div>
+              <div className="h-1 rounded-full bg-ray-border overflow-hidden">
+                <div className={`h-full rounded-full ${color}`}
+                  style={{ width: `${costoTotalPorKilo ? Math.min(val / costoTotalPorKilo * 100, 100) : 0}%` }} />
+              </div>
+            </li>
+          ))}
+        </ul>
+      </article>
+
+      {/* ── 3. Márgenes y precios mínimos por categoría ── */}
+      <article className="card p-5">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">
+          Análisis de márgenes por categoría
+        </p>
+        <p className="mb-3 text-xs text-slate-500">Precio mínimo de equilibrio: <span className="font-semibold text-white">{formatCLP(costoTotalPorKilo)} / kg</span></p>
+        <div className="space-y-3">
+          {margenes.map(({ cat, precio, margen, margenPct, ok }) => (
+            <div key={cat}>
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full" style={{ background: CAT_COLORS[cat].dark }} />
+                  <span className="text-sm font-semibold text-white">{cat}</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm">
+                  <span className="text-slate-400">{formatCLP(precio)}</span>
+                  <span className={`font-bold ${ok ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {ok ? '+' : ''}{formatCLP(margen)}
+                  </span>
+                  <span className={`text-xs rounded-full px-2 py-0.5 font-bold ${
+                    ok ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
+                  }`}>{formatPct(margenPct)}</span>
+                </div>
+              </div>
+              <div className="h-1.5 rounded-full bg-ray-border overflow-hidden">
+                <div className={`h-full rounded-full transition-all ${ok ? '' : 'bg-red-500'}`}
+                  style={{
+                    width: `${Math.min(Math.abs(margenPct) * 100, 100)}%`,
+                    background: ok ? CAT_COLORS[cat].dark : undefined,
+                  }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </article>
+
+      {/* ── 4. Variación vs mes anterior ── */}
+      {prevInd && (
         <article className="card p-5">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Costo total / kg</p>
-              <p className="mt-1 text-3xl font-bold tracking-tight text-white">{formatCLP(costoTotalPorKilo)}</p>
-            </div>
-            <div className="rounded-xl bg-ray-cyan-dim p-2 text-ray-cyan"><Coins size={20} /></div>
-          </div>
-          <ul className="mt-4 divide-y divide-ray-border text-sm">
-            <CostoLinea label="Bruto"  valor={brutoPorKilo}  pct={costoTotalPorKilo ? brutoPorKilo  / costoTotalPorKilo : 0} color="bg-blue-500"    />
-            <CostoLinea label="Baño"   valor={banoPorKilo}   pct={costoTotalPorKilo ? banoPorKilo   / costoTotalPorKilo : 0} color="bg-cyan-500"    />
-            <CostoLinea label="Aduana" valor={aduanaPorKilo} pct={costoTotalPorKilo ? aduanaPorKilo / costoTotalPorKilo : 0} color="bg-orange-500"  />
-          </ul>
-        </article>
-
-        <article className={`card border p-5 ${indCls}`}>
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Indicador de fabricación</p>
-              <p className="mt-1 text-3xl font-bold tracking-tight">
-                {pos ? '+' : ''}{formatCLP(indicadorFabricacion)}
-              </p>
-            </div>
-            <div className="rounded-xl bg-white/10 p-2">
-              {pos ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
-            </div>
-          </div>
-          <p className="mt-3 text-sm opacity-70">
-            {pos
-              ? 'Los precios ponderados cubren el costo real.'
-              : 'Precio por debajo del costo. Considera ajustar al alza.'}
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">
+            Variación vs {mesLabel(mesesOrdenados[currentIdx - 1])}
           </p>
-          <dl className="mt-3 grid grid-cols-2 gap-2 text-xs opacity-70">
-            <div><dt>Ventas pond.</dt><dd className="font-semibold">{formatCLP(ventasPonderadas)}</dd></div>
-            <div><dt>Costo total</dt><dd className="font-semibold">{formatCLP(costoTotalKilos)}</dd></div>
-          </dl>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { label: 'Tipo de cambio', actual: tipoCambio, prev: prevInd.tipoCambio, fmt: (v) => formatNumero(v, 2) },
+              { label: 'Costo / kg',     actual: costoTotalPorKilo, prev: prevInd.costoTotalPorKilo, fmt: formatCLP },
+              { label: 'Indicador',      actual: indicadorFabricacion, prev: prevInd.indicadorFabricacion, fmt: formatCLP },
+              { label: 'Kilos totales',  actual: kilos.total, prev: prevInd.kilos.total, fmt: formatKilos },
+            ].map(({ label, actual, prev: p, fmt }) => {
+              const { delta, pct } = variacion(actual, p)
+              const sube = delta >= 0
+              return (
+                <div key={label} className="rounded-xl bg-ray-border/30 p-3">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">{label}</p>
+                  <p className="text-sm font-bold text-white mt-0.5">{fmt(actual)}</p>
+                  <p className={`text-xs mt-1 font-medium ${sube ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {sube ? '▲' : '▼'} {fmt(Math.abs(delta))}
+                    {pct !== null && <span className="ml-1 opacity-70">({formatPct(Math.abs(pct))})</span>}
+                  </p>
+                </div>
+              )
+            })}
+          </div>
         </article>
-      </div>
+      )}
 
-      {/* ── Precios ponderados ── */}
-      <PreciosPonderados valores={mesData.costos_ponderados_por_kilo || {}} onGuardar={setPreciosPonderados} />
+      {/* ── 5. Evolución histórica ── */}
+      {historial.length >= 2 && (
+        <article className="card p-5">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">Evolución histórica</p>
+          <div className="overflow-x-auto -mx-2">
+            <table className="w-full text-xs min-w-[420px]">
+              <thead>
+                <tr className="text-slate-500 border-b border-ray-border">
+                  <th className="text-left pb-2 pl-2">Mes</th>
+                  <th className="text-right pb-2">TC</th>
+                  <th className="text-right pb-2">Costo/kg</th>
+                  <th className="text-right pb-2">Kilos</th>
+                  <th className="text-right pb-2 pr-2">Indicador</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-ray-border/40">
+                {historial.map(({ key, ind }) => {
+                  const esActivo = key === mesActivo
+                  const indPos = ind.indicadorFabricacion >= 0
+                  return (
+                    <tr key={key} className={esActivo ? 'bg-ray-cyan/5' : ''}>
+                      <td className={`py-2 pl-2 font-medium ${esActivo ? 'text-ray-cyan' : 'text-slate-300'}`}>
+                        {mesLabel(key)}{esActivo && ' ●'}
+                      </td>
+                      <td className="py-2 text-right text-slate-300">{formatNumero(ind.tipoCambio, 2)}</td>
+                      <td className="py-2 text-right text-slate-300">{formatCLP(ind.costoTotalPorKilo)}</td>
+                      <td className="py-2 text-right text-slate-300">{formatKilos(ind.kilos.total)}</td>
+                      <td className={`py-2 pr-2 text-right font-semibold ${indPos ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {indPos ? '+' : ''}{formatCLP(ind.indicadorFabricacion)}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </article>
+      )}
 
-      {/* ── Fila: TC + Kilos + Pie ── */}
+      {/* ── 6. Proyección próximos 3 meses ── */}
+      {n >= 2 && (
+        <article className="card p-5">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Proyección — próximos 3 meses</p>
+          <p className="text-[10px] text-slate-600 mb-3">Basada en tendencia lineal de {n} {n === 1 ? 'mes' : 'meses'} históricos</p>
+          <div className="space-y-2">
+            {proyecciones.map(({ key, tc, costo }, i) => (
+              <div key={key} className="flex items-center justify-between rounded-xl bg-ray-border/30 px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <span className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                    i === 0 ? 'bg-ray-cyan/20 text-ray-cyan' : 'bg-ray-border text-slate-500'
+                  }`}>{i + 1}</span>
+                  <span className={`text-sm font-semibold ${i === 0 ? 'text-ray-cyan' : 'text-slate-300'}`}>
+                    {mesLabel(key)}
+                  </span>
+                </div>
+                <div className="flex gap-4 text-xs text-right">
+                  <div>
+                    <p className="text-slate-500">TC est.</p>
+                    <p className="font-medium text-white">{tc ? formatNumero(tc, 2) : '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500">Costo/kg est.</p>
+                    <p className="font-medium text-white">{costo ? formatCLP(costo) : '—'}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </article>
+      )}
+
+      {/* ── 7. Tipo de cambio + Kilos + Pie ── */}
       <div className="grid gap-4 lg:grid-cols-3">
-
         <article className="card p-5">
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Tipo de cambio ponderado</p>
           <p className="mt-1 text-3xl font-bold tracking-tight text-white">
             {formatNumero(tipoCambio, 2)}
             <span className="text-sm font-normal text-slate-500"> CLP/R$</span>
           </p>
-          <p className="mt-2 text-xs text-slate-600">Total CLP pagado ÷ total R$ pagado</p>
+          <p className="mt-2 text-xs text-slate-600">Σ CLP pagado ÷ Σ R$ pagado</p>
         </article>
 
         <article className="card p-5">
@@ -131,14 +306,10 @@ export default function Dashboard({ estado }) {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie data={dataPie} dataKey="value" nameKey="name" innerRadius={40} outerRadius={68} paddingAngle={2}>
-                    {dataPie.map((d) => (
-                      <Cell key={d.name} fill={CAT_COLORS[d.name].dark} />
-                    ))}
+                    {dataPie.map((d) => <Cell key={d.name} fill={CAT_COLORS[d.name].dark} />)}
                   </Pie>
-                  <Tooltip
-                    formatter={(v) => [formatKilos(v), '']}
-                    contentStyle={{ borderRadius: 10, background: '#0b1628', border: '1px solid #152338', fontSize: 12, color: '#e2e8f0' }}
-                  />
+                  <Tooltip formatter={(v) => [formatKilos(v), '']}
+                    contentStyle={{ borderRadius: 10, background: '#0b1628', border: '1px solid #152338', fontSize: 12, color: '#e2e8f0' }} />
                   <Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} verticalAlign="bottom" height={24} />
                 </PieChart>
               </ResponsiveContainer>
@@ -147,44 +318,24 @@ export default function Dashboard({ estado }) {
         </article>
       </div>
 
-      {/* ── Tabla detalle de llegadas ── */}
+      {/* ── 8. Tabla detalle de llegadas ── */}
       <LlegadasTable llegadas={mesData.llegadas_mercaderia_por_bloque || []} />
 
     </div>
   )
 }
 
-/* ── Linea de costo con barra proporcional ── */
-function CostoLinea({ label, valor, pct, color }) {
-  return (
-    <li className="py-2">
-      <div className="flex justify-between text-sm mb-1">
-        <span className="text-slate-400">{label}</span>
-        <span className="font-medium text-white">{formatCLP(valor)}</span>
-      </div>
-      <div className="h-1 rounded-full bg-ray-border overflow-hidden">
-        <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.min(pct * 100, 100)}%` }} />
-      </div>
-    </li>
-  )
-}
-
-/* ── Tabla de llegadas detallada ── */
+/* ── Tabla llegadas ── */
 function LlegadasTable({ llegadas }) {
   if (!llegadas.length) return null
-
   const totRaw = { MICRO: 0, CADENA: 0, 'ORO GF': 0 }
   llegadas.forEach((b) => {
     totRaw.MICRO    += Number(b.MICRO)      || 0
     totRaw.CADENA   += Number(b.CADENA)     || 0
     totRaw['ORO GF']+= Number(b['ORO GF']) || 0
   })
-  const totMerma = {
-    MICRO:    totRaw.MICRO    * MERMA_LLEGADAS,
-    CADENA:   totRaw.CADENA   * MERMA_LLEGADAS,
-    'ORO GF': totRaw['ORO GF']* MERMA_LLEGADAS,
-  }
-  const totalRaw   = totRaw.MICRO   + totRaw.CADENA   + totRaw['ORO GF']
+  const totMerma = { MICRO: totRaw.MICRO * MERMA_LLEGADAS, CADENA: totRaw.CADENA * MERMA_LLEGADAS, 'ORO GF': totRaw['ORO GF'] * MERMA_LLEGADAS }
+  const totalRaw = totRaw.MICRO + totRaw.CADENA + totRaw['ORO GF']
   const totalMerma = totMerma.MICRO + totMerma.CADENA + totMerma['ORO GF']
 
   return (
@@ -193,22 +344,17 @@ function LlegadasTable({ llegadas }) {
         <h3 className="text-xs font-bold uppercase tracking-widest text-yellow-400">Detalle de llegadas</h3>
         <span className="text-[10px] text-slate-500">{llegadas.length} {llegadas.length === 1 ? 'envío' : 'envíos'}</span>
       </div>
-
-      {/* Header tabla */}
-      <div className="grid grid-cols-[100px_1fr_1fr_1fr_80px] gap-x-2 px-5 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-        <span>Fecha</span>
-        <span className="text-center text-blue-500">MICRO</span>
+      <div className="grid grid-cols-[90px_1fr_1fr_1fr_72px] gap-x-2 px-5 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+        <span>Fecha</span><span className="text-center text-blue-500">MICRO</span>
         <span className="text-center text-emerald-500">CADENA</span>
         <span className="text-center text-amber-500">ORO GF</span>
         <span className="text-right">Total</span>
       </div>
-
-      {/* Filas */}
       <div className="divide-y divide-ray-border/50">
         {llegadas.map((b, i) => {
           const rowTotal = (b.MICRO || 0) + (b.CADENA || 0) + (b['ORO GF'] || 0)
           return (
-            <div key={i} className="grid grid-cols-[100px_1fr_1fr_1fr_80px] items-center gap-x-2 px-5 py-2.5 hover:bg-ray-border/20 transition-colors">
+            <div key={i} className="grid grid-cols-[90px_1fr_1fr_1fr_72px] items-center gap-x-2 px-5 py-2.5 hover:bg-ray-border/20 transition-colors">
               <span className="font-mono text-xs text-slate-400">{b.fecha ? formatFecha(b.fecha) : '—'}</span>
               <span className="text-center text-sm font-medium text-blue-300">{formatKilos(b.MICRO)}</span>
               <span className="text-center text-sm font-medium text-emerald-300">{formatKilos(b.CADENA)}</span>
@@ -218,75 +364,21 @@ function LlegadasTable({ llegadas }) {
           )
         })}
       </div>
-
-      {/* Fila totales brutos */}
-      <div className="grid grid-cols-[100px_1fr_1fr_1fr_80px] items-center gap-x-2 border-t border-ray-border px-5 py-2.5 bg-ray-border/20">
+      <div className="grid grid-cols-[90px_1fr_1fr_1fr_72px] items-center gap-x-2 border-t border-ray-border px-5 py-2.5 bg-ray-border/20">
         <span className="text-[10px] font-bold uppercase text-slate-500">Subtotal</span>
         <span className="text-center text-sm text-slate-300">{formatKilos(totRaw.MICRO)}</span>
         <span className="text-center text-sm text-slate-300">{formatKilos(totRaw.CADENA)}</span>
         <span className="text-center text-sm text-slate-300">{formatKilos(totRaw['ORO GF'])}</span>
         <span className="text-right text-sm font-semibold text-slate-300">{formatKilos(totalRaw)}</span>
       </div>
-
-      {/* Fila totales con merma */}
-      <div className="grid grid-cols-[100px_1fr_1fr_1fr_80px] items-center gap-x-2 border-t border-yellow-500/30 px-5 py-2.5 bg-yellow-900/10">
+      <div className="grid grid-cols-[90px_1fr_1fr_1fr_72px] items-center gap-x-2 border-t border-yellow-500/30 px-5 py-2.5 bg-yellow-900/10">
         <span className="text-[10px] font-bold uppercase text-yellow-500">Con merma</span>
         <span className="text-center text-sm font-medium text-blue-300">{formatKilos(totMerma.MICRO)}</span>
         <span className="text-center text-sm font-medium text-emerald-300">{formatKilos(totMerma.CADENA)}</span>
         <span className="text-center text-sm font-medium text-amber-300">{formatKilos(totMerma['ORO GF'])}</span>
         <span className="text-right text-sm font-bold text-yellow-300">{formatKilos(totalMerma)}</span>
       </div>
-      <p className="px-5 pb-3 text-[10px] text-slate-600">* 1% de merma aplicado al total acumulado de llegadas</p>
-    </article>
-  )
-}
-
-/* ── Precios ponderados ── */
-function PreciosPonderados({ valores, onGuardar }) {
-  const fmt = (v) => (v ? Math.round(v).toLocaleString('es-CL') : '')
-  const fromValores = (v) => {
-    const n = normalizarPorCategoria(v)
-    return { MICRO: fmt(n.MICRO), CADENA: fmt(n.CADENA), 'ORO GF': fmt(n['ORO GF']) }
-  }
-  const [form, setForm] = useState(() => fromValores(valores))
-  const [guardado, setGuardado] = useState(false)
-  const editing = useRef(false)
-
-  useEffect(() => {
-    if (!editing.current) setForm(fromValores(valores))
-  }, [valores])
-
-  const set = (k, v) => { editing.current = true; setForm((p) => ({ ...p, [k]: v })); setGuardado(false) }
-
-  const handleGuardar = () => {
-    editing.current = false
-    onGuardar({
-      MICRO:    parseNumeroFlexible(form.MICRO),
-      CADENA:   parseNumeroFlexible(form.CADENA),
-      'ORO GF': parseNumeroFlexible(form['ORO GF']),
-    })
-    setGuardado(true)
-  }
-
-  return (
-    <article className="card p-5">
-      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">Precios ponderados por kg</p>
-      <div className="grid grid-cols-3 gap-3">
-        {['MICRO', 'CADENA', 'ORO GF'].map((cat) => (
-          <label key={cat} className="block">
-            <span className="label">{cat}</span>
-            <div className="relative">
-              <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-ray-cyan select-none">$</span>
-              <input type="text" inputMode="numeric" value={form[cat]}
-                onChange={(e) => set(cat, e.target.value)} className="input pl-6" />
-            </div>
-          </label>
-        ))}
-      </div>
-      <button type="button" onClick={handleGuardar}
-        className={`mt-3 w-full rounded-xl px-4 py-2 text-sm font-medium transition ${guardado ? 'bg-emerald-500 text-white' : 'btn-primary'}`}>
-        {guardado ? '✓ Guardado' : 'Guardar precios'}
-      </button>
+      <p className="px-5 pb-3 text-[10px] text-slate-600">* 1% merma aplicada al total acumulado</p>
     </article>
   )
 }

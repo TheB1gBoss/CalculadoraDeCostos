@@ -79,9 +79,14 @@ export function parseNumeroFlexible(input) {
   if (!input) return 0
   const s = String(input).trim()
   if (!s) return 0
-  // Si trae coma decimal estilo chileno/brasileño: quitar puntos de miles y cambiar coma a punto.
+  // Estilo chileno con coma decimal: "1.234,56" → quitar puntos, cambiar coma
   if (s.includes(',') && s.lastIndexOf(',') > s.lastIndexOf('.')) {
     const n = Number(s.replace(/\./g, '').replace(',', '.'))
+    return Number.isFinite(n) ? n : 0
+  }
+  // Punto como separador de miles: "550.000" o "1.500.000"
+  if (s.includes('.') && /\.\d{3}(\.|$)/.test(s)) {
+    const n = Number(s.replace(/\./g, ''))
     return Number.isFinite(n) ? n : 0
   }
   const n = Number(s)

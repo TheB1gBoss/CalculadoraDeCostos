@@ -1,5 +1,5 @@
 import { AlertTriangle, Coins, Scale, TrendingDown, TrendingUp } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 import { formatCLP, formatKilos, formatNumero } from '../lib/formato.js'
 import { parseNumeroFlexible } from '../lib/formato.js'
@@ -176,18 +176,24 @@ function Linea({ label, valor }) {
 }
 
 function PreciosPonderados({ valores, onGuardar }) {
-  const norm = normalizarPorCategoria(valores)
   const fmt = (v) => (v ? Math.round(v).toLocaleString('es-CL') : '')
-  const [form, setForm] = useState({
-    MICRO:    fmt(norm.MICRO),
-    CADENA:   fmt(norm.CADENA),
-    'ORO GF': fmt(norm['ORO GF']),
-  })
+  const fromValores = (v) => {
+    const n = normalizarPorCategoria(v)
+    return { MICRO: fmt(n.MICRO), CADENA: fmt(n.CADENA), 'ORO GF': fmt(n['ORO GF']) }
+  }
+  const [form, setForm] = useState(() => fromValores(valores))
   const [guardado, setGuardado] = useState(false)
+  const editing = useRef(false)
 
-  const set = (k, v) => { setForm((p) => ({ ...p, [k]: v })); setGuardado(false) }
+  // Sincronizar desde Firebase solo si el usuario no está editando
+  useEffect(() => {
+    if (!editing.current) setForm(fromValores(valores))
+  }, [valores])
+
+  const set = (k, v) => { editing.current = true; setForm((p) => ({ ...p, [k]: v })); setGuardado(false) }
 
   const handleGuardar = () => {
+    editing.current = false
     onGuardar({
       MICRO:    parseNumeroFlexible(form.MICRO),
       CADENA:   parseNumeroFlexible(form.CADENA),

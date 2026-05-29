@@ -69,7 +69,7 @@ export default function Ingreso({ estado }) {
           fields={[
             { key: 'fecha',     label: 'Fecha',     type: 'date',   default: today() },
             { key: 'kilos',     label: 'Kilos',     type: 'number', placeholder: '0,000', prefix: 'kg' },
-            { key: 'total_clp', label: 'Total CLP', type: 'number', placeholder: '0',    prefix: '$'  },
+            { key: 'total_clp', label: 'Total R$',  type: 'number', placeholder: '0,00',  prefix: 'R$' },
           ]}
           onAdd={(row) => addRow('banos_completados', row)}
         />

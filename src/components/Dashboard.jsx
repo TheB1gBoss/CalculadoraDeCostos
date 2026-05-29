@@ -69,13 +69,15 @@ export default function Dashboard({ estado }) {
     costo: costoFn ? costoFn(n - 1 + off) : null,
   }))
 
-  /* ── Márgenes por categoría ── */
+  /* ── Rentabilidad por categoría ── */
   const precios = normalizarPorCategoria(mesData.costos_ponderados_por_kilo || {})
   const margenes = ['MICRO', 'CADENA', 'ORO GF'].map((cat) => {
     const precio = precios[cat] || 0
     const margen = precio - costoTotalPorKilo
     const margenPct = costoTotalPorKilo ? margen / costoTotalPorKilo : 0
-    return { cat, precio, margen, margenPct, ok: margen >= 0 }
+    const kilosCat = kilos[cat] || 0
+    const gananciaTotal = margen * kilosCat
+    return { cat, precio, margen, margenPct, kilosCat, gananciaTotal, ok: margen >= 0 }
   })
 
   /* ── Pie chart ── */
@@ -129,35 +131,55 @@ export default function Dashboard({ estado }) {
         </ul>
       </article>
 
-      {/* ── 3. Márgenes y precios mínimos por categoría ── */}
+      {/* ── 3. Rentabilidad por categoría ── */}
       <article className="card p-5">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">
-          Análisis de márgenes por categoría
+        <p className="text-lg font-bold text-white mb-1">Rentabilidad por Categoría</p>
+        <p className="mb-4 text-xs text-slate-500">
+          Equilibrio: <span className="font-semibold text-slate-300">{formatCLP(costoTotalPorKilo)} / kg</span>
+          <span className="mx-2 text-slate-700">·</span>
+          Ganancia total: <span className={`font-semibold ${margenes.reduce((s,m)=>s+m.gananciaTotal,0)>=0?'text-emerald-400':'text-red-400'}`}>
+            {formatCLP(margenes.reduce((s,m)=>s+m.gananciaTotal,0))}
+          </span>
         </p>
-        <p className="mb-3 text-xs text-slate-500">Precio mínimo de equilibrio: <span className="font-semibold text-white">{formatCLP(costoTotalPorKilo)} / kg</span></p>
-        <div className="space-y-3">
-          {margenes.map(({ cat, precio, margen, margenPct, ok }) => (
+        <div className="space-y-4">
+          {margenes.map(({ cat, precio, margen, margenPct, kilosCat, gananciaTotal, ok }) => (
             <div key={cat}>
-              <div className="flex items-center justify-between mb-1">
+              {/* Cabecera de categoría */}
+              <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full" style={{ background: CAT_COLORS[cat].dark }} />
-                  <span className="text-sm font-semibold text-white">{cat}</span>
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: CAT_COLORS[cat].dark }} />
+                  <span className="font-bold text-white">{cat}</span>
+                  <span className="text-xs text-slate-500">{formatKilos(kilosCat)}</span>
                 </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <span className="text-slate-400">{formatCLP(precio)}</span>
-                  <span className={`font-bold ${ok ? 'text-emerald-400' : 'text-red-400'}`}>
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                  ok ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
+                }`}>{formatPct(margenPct)}</span>
+              </div>
+              {/* Detalle numérico */}
+              <div className="grid grid-cols-3 gap-2 mb-2 text-center">
+                <div className="rounded-lg bg-ray-border/40 px-2 py-1.5">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">Precio/kg</p>
+                  <p className="text-sm font-semibold text-white">{formatCLP(precio)}</p>
+                </div>
+                <div className="rounded-lg bg-ray-border/40 px-2 py-1.5">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">Margen/kg</p>
+                  <p className={`text-sm font-bold ${ok ? 'text-emerald-400' : 'text-red-400'}`}>
                     {ok ? '+' : ''}{formatCLP(margen)}
-                  </span>
-                  <span className={`text-xs rounded-full px-2 py-0.5 font-bold ${
-                    ok ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
-                  }`}>{formatPct(margenPct)}</span>
+                  </p>
+                </div>
+                <div className={`rounded-lg px-2 py-1.5 ${ok ? 'bg-emerald-900/20' : 'bg-red-900/20'}`}>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">Total generado</p>
+                  <p className={`text-sm font-bold ${ok ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {ok ? '+' : ''}{formatCLP(gananciaTotal)}
+                  </p>
                 </div>
               </div>
+              {/* Barra */}
               <div className="h-1.5 rounded-full bg-ray-border overflow-hidden">
-                <div className={`h-full rounded-full transition-all ${ok ? '' : 'bg-red-500'}`}
+                <div className="h-full rounded-full"
                   style={{
                     width: `${Math.min(Math.abs(margenPct) * 100, 100)}%`,
-                    background: ok ? CAT_COLORS[cat].dark : undefined,
+                    background: ok ? CAT_COLORS[cat].dark : '#ef4444',
                   }} />
               </div>
             </div>

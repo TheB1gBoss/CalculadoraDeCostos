@@ -2,6 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes ticker {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-ticker {
+  animation: ticker 28s linear infinite;
+}
+.animate-ticker:hover {
+  animation-play-state: paused;
+}
+
 @layer base {
   html { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
   body { @apply bg-gray-50 text-gray-900 antialiased dark:bg-ray-bg dark:text-white; }

@@ -12,22 +12,42 @@ function IndicadorBar({ indicadores }) {
   const { indicadorFabricacion, costoTotalPorKilo, tipoCambio } = indicadores
   if (!costoTotalPorKilo) return null
   const pos = indicadorFabricacion >= 0
-  return (
-    <div className={`flex items-center justify-center gap-3 border-b px-4 py-1.5 text-xs ${
-      pos
-        ? 'border-emerald-900 bg-emerald-950/40'
-        : 'border-red-900 bg-red-950/40'
-    }`}>
-      <span className="text-slate-500">Indicador</span>
-      <span className={`font-bold tabular-nums ${pos ? 'text-emerald-400' : 'text-red-400'}`}>
-        {pos ? '+' : ''}{formatCLP(indicadorFabricacion)}
+
+  const SEP = <span className="mx-4 text-slate-600 select-none">◆</span>
+
+  const items = (
+    <>
+      <span className="inline-flex items-center gap-2">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Indicador</span>
+        <span className={`text-sm font-bold tabular-nums ${pos ? 'text-emerald-400' : 'text-red-400'}`}>
+          {pos ? '+' : ''}{formatCLP(indicadorFabricacion)}
+        </span>
       </span>
-      <span className="text-slate-700">·</span>
-      <span className="text-slate-500">Costo/kg</span>
-      <span className="font-semibold text-white tabular-nums">{formatCLP(costoTotalPorKilo)}</span>
-      <span className="text-slate-700">·</span>
-      <span className="text-slate-500">TC</span>
-      <span className="font-semibold text-white tabular-nums">{formatNumero(tipoCambio, 2)}</span>
+      {SEP}
+      <span className="inline-flex items-center gap-2">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Costo / kg</span>
+        <span className="text-sm font-bold text-white tabular-nums">{formatCLP(costoTotalPorKilo)}</span>
+      </span>
+      {SEP}
+      <span className="inline-flex items-center gap-2">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">T/C</span>
+        <span className="text-sm font-bold text-ray-cyan tabular-nums">{formatNumero(tipoCambio, 2)} <span className="text-xs font-normal text-slate-500">CLP/R$</span></span>
+      </span>
+      {SEP}
+    </>
+  )
+
+  return (
+    <div className={`overflow-hidden border-b ${
+      pos ? 'border-emerald-900/60 bg-emerald-950/25' : 'border-red-900/60 bg-red-950/25'
+    }`}>
+      <div className="animate-ticker inline-flex whitespace-nowrap py-2.5">
+        {/* duplicado para loop continuo sin salto */}
+        <span className="inline-flex items-center pl-8">{items}</span>
+        <span className="inline-flex items-center pl-8">{items}</span>
+        <span className="inline-flex items-center pl-8">{items}</span>
+        <span className="inline-flex items-center pl-8">{items}</span>
+      </div>
     </div>
   )
 }

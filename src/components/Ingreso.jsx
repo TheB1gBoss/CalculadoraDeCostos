@@ -154,16 +154,23 @@ function QuickAdd({ fields, onAdd }) {
   )
 }
 
+const MERMA_LLEGADAS = 0.992 // 0,8% de descuento al recibir
+
 /* ── Formulario especial para llegadas ──────────────────── */
 function LlegadasAdd({ onAdd }) {
   const init = () => ({ MICRO: '', CADENA: '', 'ORO GF': '' })
   const [form, setForm] = useState(init)
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }))
   const handleAdd = () => {
-    onAdd({
+    const raw = {
       MICRO:    parseNumeroFlexible(form.MICRO),
       CADENA:   parseNumeroFlexible(form.CADENA),
       'ORO GF': parseNumeroFlexible(form['ORO GF']),
+    }
+    onAdd({
+      MICRO:    raw.MICRO    ? +(raw.MICRO    * MERMA_LLEGADAS).toFixed(3) : 0,
+      CADENA:   raw.CADENA   ? +(raw.CADENA   * MERMA_LLEGADAS).toFixed(3) : 0,
+      'ORO GF': raw['ORO GF'] ? +(raw['ORO GF'] * MERMA_LLEGADAS).toFixed(3) : 0,
     })
     setForm(init())
   }
@@ -187,6 +194,9 @@ function LlegadasAdd({ onAdd }) {
           </label>
         ))}
       </div>
+      <p className="text-center text-[10px] text-gray-400 dark:text-slate-600">
+        Se aplica 0,8% de merma al guardar
+      </p>
       <button type="button" onClick={handleAdd} className="btn-primary w-full">
         <Plus size={16} /> Agregar embarque
       </button>

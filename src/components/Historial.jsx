@@ -1,4 +1,5 @@
-import { Calendar, Lock, Trash2, Unlock } from 'lucide-react'
+import { Calendar, ChevronDown, Lock, Trash2, Unlock } from 'lucide-react'
+import { useState } from 'react'
 import { calcularIndicadores } from '../lib/calculos.js'
 import { formatCLP, formatFecha, formatKilos, formatMes, formatReales } from '../lib/formato.js'
 
@@ -134,11 +135,12 @@ function RowLlegadas({ r, locked, onLock, onDelete }) {
   )
 }
 
-/* ── Sección por categoría ── */
+/* ── Sección por categoría (colapsable) ── */
 function SeccionCategoria({ seccion, entradas, onLock, onDelete }) {
   const { key, label, accent } = seccion
   const ac = AC[accent]
   const count = entradas.length
+  const [open, setOpen] = useState(false)
 
   const renderRow = (r, idx) => {
     const props = { r, key: idx, locked: !!r._locked,
@@ -154,18 +156,30 @@ function SeccionCategoria({ seccion, entradas, onLock, onDelete }) {
 
   return (
     <article className={`card overflow-hidden border-l-4 ${ac.border} p-0`}>
-      <div className="flex items-center justify-between px-4 py-3">
+      <button
+        type="button"
+        onClick={() => count > 0 && setOpen((o) => !o)}
+        className={`flex w-full items-center justify-between px-4 py-3 text-left transition-colors ${count > 0 ? 'hover:bg-ray-border/30' : 'cursor-default'}`}
+      >
         <div className="flex items-center gap-2">
           <span className={`h-2 w-2 rounded-full ${ac.dot}`} />
           <h3 className={`text-xs font-bold uppercase tracking-wide ${ac.head}`}>{label}</h3>
         </div>
-        <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${count > 0 ? ac.badge : 'bg-ray-border text-slate-600'}`}>
-          {count === 0 ? 'Sin registros' : `${count} ${count === 1 ? 'entrada' : 'entradas'}`}
-        </span>
-      </div>
+        <div className="flex items-center gap-2">
+          <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${count > 0 ? ac.badge : 'bg-ray-border text-slate-600'}`}>
+            {count === 0 ? 'Sin registros' : `${count} ${count === 1 ? 'entrada' : 'entradas'}`}
+          </span>
+          {count > 0 && (
+            <ChevronDown
+              size={14}
+              className={`shrink-0 text-slate-500 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+            />
+          )}
+        </div>
+      </button>
 
-      {count > 0 && (
-        <div className="space-y-0.5 px-2 pb-2">
+      {open && count > 0 && (
+        <div className="space-y-0.5 px-2 pb-2 border-t border-ray-border/50">
           {entradas.map((r, idx) => renderRow(r, idx))}
         </div>
       )}

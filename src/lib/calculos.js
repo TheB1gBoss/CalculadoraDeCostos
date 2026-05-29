@@ -12,6 +12,7 @@
  */
 
 export const MERMA_FACTOR = 0.95
+export const MERMA_LLEGADAS = 0.99
 
 const sum = (arr, get = (x) => x) =>
   (arr || []).reduce((acc, x) => acc + (Number(get(x)) || 0), 0)
@@ -108,6 +109,8 @@ export function kilosPorCategoria(llegadas) {
       acc[cat] += Number(b?.[cat]) || 0
     })
   })
+  // 1% merma al recibir llegadas (igual que 5% en bruto)
+  CATEGORIAS.forEach((cat) => { acc[cat] = acc[cat] * MERMA_LLEGADAS })
   acc.total = acc.MICRO + acc.CADENA + acc['ORO GF']
   return acc
 }

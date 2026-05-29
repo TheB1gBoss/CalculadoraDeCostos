@@ -33,7 +33,10 @@ export default function App() {
             <h1 className="text-base font-bold uppercase tracking-widest leading-tight dark:text-white">
               Costos e Importación
             </h1>
-            <p className="text-xs text-gray-500 dark:text-slate-400">Inversiones Aravena SPA</p>
+            <p className="text-xs text-gray-500 dark:text-slate-400 flex items-center justify-center gap-1">
+              <span className={`inline-block h-1.5 w-1.5 rounded-full ${estado.synced ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`} />
+              {estado.synced ? 'Sincronizado' : 'Conectando…'}
+            </p>
           </div>
           <button
             type="button"

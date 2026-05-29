@@ -1,73 +1,193 @@
-import { AlertTriangle, Calendar, Lock, Trash2, Unlock } from 'lucide-react'
+import { Calendar, Lock, Trash2, Unlock } from 'lucide-react'
 import { calcularIndicadores } from '../lib/calculos.js'
-import { formatCLP, formatKilos, formatMes, formatReales } from '../lib/formato.js'
+import { formatCLP, formatFecha, formatKilos, formatMes, formatReales } from '../lib/formato.js'
 
-const CAT_LABEL = {
-  compras_bruto:                  'BRUTO',
-  pagos:                          'PAGOS',
-  servicios_completados:          'SERVICIOS',
-  pagos_aduana:                   'ADUANA',
-  banos_completados:              'BAÑOS',
-  llegadas_mercaderia_por_bloque: 'LLEGADAS',
+const SECCIONES = [
+  { key: 'compras_bruto',                   label: 'Compras de Bruto',          accent: 'blue'    },
+  { key: 'pagos',                            label: 'Pagos Realizados',           accent: 'emerald' },
+  { key: 'servicios_completados',            label: 'Servicios de Fabricación',   accent: 'purple'  },
+  { key: 'pagos_aduana',                     label: 'Pagos a Aduana',             accent: 'orange'  },
+  { key: 'banos_completados',               label: 'Baños Procesados',            accent: 'cyan'    },
+  { key: 'llegadas_mercaderia_por_bloque',  label: 'Kilos Llegados',              accent: 'yellow'  },
+]
+
+const AC = {
+  blue:    { border: 'border-l-blue-500',    dot: 'bg-blue-500',    head: 'text-blue-400',    badge: 'bg-blue-500/10 text-blue-300'     },
+  emerald: { border: 'border-l-emerald-500', dot: 'bg-emerald-500', head: 'text-emerald-400', badge: 'bg-emerald-500/10 text-emerald-300'},
+  purple:  { border: 'border-l-purple-500',  dot: 'bg-purple-500',  head: 'text-purple-400',  badge: 'bg-purple-500/10 text-purple-300'  },
+  orange:  { border: 'border-l-orange-500',  dot: 'bg-orange-500',  head: 'text-orange-400',  badge: 'bg-orange-500/10 text-orange-300'  },
+  cyan:    { border: 'border-l-cyan-500',    dot: 'bg-cyan-500',    head: 'text-cyan-400',    badge: 'bg-cyan-500/10 text-cyan-300'      },
+  yellow:  { border: 'border-l-yellow-500',  dot: 'bg-yellow-500',  head: 'text-yellow-400',  badge: 'bg-yellow-500/10 text-yellow-300'  },
 }
 
-const CAT_COLOR = {
-  BRUTO:    'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-  PAGOS:    'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
-  SERVICIOS:'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
-  ADUANA:   'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
-  BAÑOS:    'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300',
-  LLEGADAS: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
+/* ── Chips de fecha ── */
+function DateChip({ fecha }) {
+  if (!fecha) return null
+  return (
+    <span className="shrink-0 rounded-md bg-ray-border px-2 py-0.5 font-mono text-[10px] text-slate-400">
+      {formatFecha(fecha)}
+    </span>
+  )
 }
 
-function fmtTs(ts) {
-  if (!ts) return null
-  return new Intl.DateTimeFormat('es-CL', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  }).format(new Date(ts))
+/* ── Botones de acción ── */
+function RowActions({ locked, onLock, onDelete }) {
+  return (
+    <div className="flex shrink-0 gap-0.5">
+      <button type="button" onClick={onLock}
+        className={`rounded-lg p-1.5 transition-colors ${
+          locked
+            ? 'text-amber-400 hover:bg-amber-900/20'
+            : 'text-slate-500 hover:bg-ray-border hover:text-slate-300'
+        }`} aria-label={locked ? 'Desbloquear' : 'Bloquear'}>
+        {locked ? <Lock size={13} /> : <Unlock size={13} />}
+      </button>
+      <button type="button" onClick={onDelete}
+        className="rounded-lg p-1.5 text-slate-500 hover:bg-red-900/20 hover:text-red-400"
+        aria-label="Eliminar">
+        <Trash2 size={13} />
+      </button>
+    </div>
+  )
 }
 
-function rowSummary(key, r) {
-  if (key === 'compras_bruto')
-    return `${r.detalle || '—'}  ·  ${formatKilos(r.kilos)}  ·  ${formatReales(r.total_reales)}`
-  if (key === 'pagos')
-    return `${formatReales(r.reales)} → ${formatCLP(r.chilenos)}`
-  if (key === 'servicios_completados')
-    return `${r.detalle || '—'}  ·  ${formatReales(r.total_reales)}`
-  if (key === 'pagos_aduana')
-    return `${r.detalle || '—'}  ·  ${formatKilos(r.kilos)}  ·  ${formatCLP(r.total_clp)}`
-  if (key === 'banos_completados')
-    return `${r.detalle || '—'}  ·  ${formatKilos(r.kilos)}  ·  ${formatReales(r.total_clp)}`
-  if (key === 'llegadas_mercaderia_por_bloque')
-    return `MICRO ${formatKilos(r.MICRO)}  CADENA ${formatKilos(r.CADENA)}  ORO GF ${formatKilos(r['ORO GF'])}`
-  return ''
+/* ── Rows por categoría ── */
+function RowCompras({ r, locked, onLock, onDelete }) {
+  return (
+    <div className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 transition-colors ${locked ? 'bg-amber-900/10 opacity-60' : 'hover:bg-ray-border/40'}`}>
+      <DateChip fecha={r.fecha} />
+      <span className="flex-1 truncate text-sm text-slate-200">{r.detalle || '—'}</span>
+      <span className="shrink-0 text-xs text-slate-400">{formatKilos(r.kilos)}</span>
+      <span className="shrink-0 font-medium text-sm text-blue-300">{formatReales(r.total_reales)}</span>
+      <RowActions locked={locked} onLock={onLock} onDelete={onDelete} />
+    </div>
+  )
 }
 
+function RowPagos({ r, locked, onLock, onDelete }) {
+  const tc = r.reales ? (r.chilenos / r.reales).toFixed(2) : '—'
+  return (
+    <div className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 transition-colors ${locked ? 'bg-amber-900/10 opacity-60' : 'hover:bg-ray-border/40'}`}>
+      <DateChip fecha={r.fecha} />
+      <span className="font-medium text-sm text-emerald-300">{formatReales(r.reales)}</span>
+      <span className="text-slate-600 text-xs">→</span>
+      <span className="font-medium text-sm text-white">{formatCLP(r.chilenos)}</span>
+      <span className="ml-auto shrink-0 text-xs text-slate-500">TC {tc}</span>
+      <RowActions locked={locked} onLock={onLock} onDelete={onDelete} />
+    </div>
+  )
+}
+
+function RowServicios({ r, locked, onLock, onDelete }) {
+  return (
+    <div className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 transition-colors ${locked ? 'bg-amber-900/10 opacity-60' : 'hover:bg-ray-border/40'}`}>
+      <DateChip fecha={r.fecha} />
+      <span className="flex-1 truncate text-sm text-slate-200">{r.detalle || '—'}</span>
+      <span className="shrink-0 font-medium text-sm text-purple-300">{formatReales(r.total_reales)}</span>
+      <RowActions locked={locked} onLock={onLock} onDelete={onDelete} />
+    </div>
+  )
+}
+
+function RowAduana({ r, locked, onLock, onDelete }) {
+  return (
+    <div className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 transition-colors ${locked ? 'bg-amber-900/10 opacity-60' : 'hover:bg-ray-border/40'}`}>
+      <DateChip fecha={r.fecha} />
+      <span className="flex-1 truncate text-sm text-slate-200">{r.detalle || '—'}</span>
+      <span className="shrink-0 text-xs text-slate-400">{formatKilos(r.kilos)}</span>
+      <span className="shrink-0 font-medium text-sm text-orange-300">{formatCLP(r.total_clp)}</span>
+      <RowActions locked={locked} onLock={onLock} onDelete={onDelete} />
+    </div>
+  )
+}
+
+function RowBanos({ r, locked, onLock, onDelete }) {
+  return (
+    <div className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 transition-colors ${locked ? 'bg-amber-900/10 opacity-60' : 'hover:bg-ray-border/40'}`}>
+      <DateChip fecha={r.fecha} />
+      <span className="flex-1 truncate text-sm text-slate-200">{r.detalle || '—'}</span>
+      <span className="shrink-0 text-xs text-slate-400">{formatKilos(r.kilos)}</span>
+      <span className="shrink-0 font-medium text-sm text-cyan-300">{formatReales(r.total_clp)}</span>
+      <RowActions locked={locked} onLock={onLock} onDelete={onDelete} />
+    </div>
+  )
+}
+
+function RowLlegadas({ r, locked, onLock, onDelete }) {
+  const total = (r.MICRO || 0) + (r.CADENA || 0) + (r['ORO GF'] || 0)
+  return (
+    <div className={`rounded-xl px-3 py-2.5 transition-colors ${locked ? 'bg-amber-900/10 opacity-60' : 'hover:bg-ray-border/40'}`}>
+      <div className="flex items-center gap-2.5 mb-2">
+        <DateChip fecha={r.fecha} />
+        <span className="ml-auto text-xs text-slate-400">{formatKilos(total)} bruto</span>
+        <RowActions locked={locked} onLock={onLock} onDelete={onDelete} />
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {[['MICRO', r.MICRO, 'text-blue-400'], ['CADENA', r.CADENA, 'text-emerald-400'], ['ORO GF', r['ORO GF'], 'text-amber-400']].map(([cat, val, color]) => (
+          <div key={cat} className="rounded-lg bg-ray-border/60 px-2 py-1.5 text-center">
+            <div className="text-[10px] uppercase tracking-wide text-slate-500">{cat}</div>
+            <div className={`text-sm font-semibold ${color}`}>{formatKilos(val)}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ── Sección por categoría ── */
+function SeccionCategoria({ seccion, entradas, onLock, onDelete }) {
+  const { key, label, accent } = seccion
+  const ac = AC[accent]
+  const count = entradas.length
+
+  const renderRow = (r, idx) => {
+    const props = { r, key: idx, locked: !!r._locked,
+      onLock: () => onLock(key, idx), onDelete: () => onDelete(key, idx) }
+    if (key === 'compras_bruto')                  return <RowCompras   {...props} />
+    if (key === 'pagos')                           return <RowPagos     {...props} />
+    if (key === 'servicios_completados')           return <RowServicios {...props} />
+    if (key === 'pagos_aduana')                    return <RowAduana    {...props} />
+    if (key === 'banos_completados')              return <RowBanos     {...props} />
+    if (key === 'llegadas_mercaderia_por_bloque') return <RowLlegadas  {...props} />
+    return null
+  }
+
+  return (
+    <article className={`card overflow-hidden border-l-4 ${ac.border} p-0`}>
+      <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center gap-2">
+          <span className={`h-2 w-2 rounded-full ${ac.dot}`} />
+          <h3 className={`text-xs font-bold uppercase tracking-wide ${ac.head}`}>{label}</h3>
+        </div>
+        <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${count > 0 ? ac.badge : 'bg-ray-border text-slate-600'}`}>
+          {count === 0 ? 'Sin registros' : `${count} ${count === 1 ? 'entrada' : 'entradas'}`}
+        </span>
+      </div>
+
+      {count > 0 && (
+        <div className="space-y-0.5 px-2 pb-2">
+          {entradas.map((r, idx) => renderRow(r, idx))}
+        </div>
+      )}
+    </article>
+  )
+}
+
+/* ── Componente principal ── */
 export default function Historial({ estado }) {
   const { mesActivo, mesData, mesesOrdenados, setMesActivo, eliminarMes, state } = estado
 
-  /* Registro de entradas del mes activo ordenado por timestamp */
-  const logEntries = []
-  Object.keys(CAT_LABEL).forEach((key) => {
-    ;(mesData[key] || []).forEach((r, idx) => {
-      logEntries.push({ key, idx, r, ts: r._ts || null })
-    })
-  })
-  logEntries.sort((a, b) => (b.ts || 0) - (a.ts || 0))
-
-  const handleEliminarEntrada = (key, idx) => {
+  const handleDelete = (key, idx) => {
     const next = (mesData[key] || []).filter((_, i) => i !== idx)
     estado.updateMes({ [key]: next })
   }
 
-  const handleToggleLock = (key, idx) => {
-    const arr = (mesData[key] || [])
-    const next = arr.map((r, i) => i === idx ? { ...r, _locked: !r._locked } : r)
+  const handleLock = (key, idx) => {
+    const next = (mesData[key] || []).map((r, i) => i === idx ? { ...r, _locked: !r._locked } : r)
     estado.updateMes({ [key]: next })
   }
 
-  const handleEliminar = (key) => {
+  const handleEliminarMes = (key) => {
     if (mesesOrdenados.length <= 1) { alert('No puedes eliminar el último mes guardado.'); return }
     if (confirm(`¿Eliminar el mes ${formatMes(key)}?`)) eliminarMes(key)
   }
@@ -75,6 +195,7 @@ export default function Historial({ estado }) {
   return (
     <div className="space-y-4">
 
+      {/* ── Selector de meses ── */}
       {mesesOrdenados.length > 0 && (
         <ul className="grid gap-3 sm:grid-cols-2">
           {[...mesesOrdenados].reverse().map((key) => {
@@ -82,30 +203,29 @@ export default function Historial({ estado }) {
             const activo = key === mesActivo
             const pos = ind.indicadorFabricacion >= 0
             return (
-              <li key={key} className={`card relative p-4 ${activo ? 'ring-2 ring-brand-500 dark:ring-ray-cyan' : ''}`}>
+              <li key={key} className={`card relative p-4 ${activo ? 'ring-2 ring-ray-cyan' : ''}`}>
                 <div className="flex items-start justify-between gap-2">
                   <button type="button" onClick={() => setMesActivo(key)} className="flex flex-1 items-start gap-3 text-left">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-ray-cyan-dim dark:text-ray-cyan">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-ray-cyan-dim text-ray-cyan">
                       <Calendar size={18} />
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{formatMes(key)}</p>
-                      <p className="text-xs text-gray-500 dark:text-slate-400">{activo ? 'Mes activo' : 'Toca para seleccionar'}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-white">{formatMes(key)}</p>
+                      <p className="text-xs text-slate-400">{activo ? 'Mes activo' : 'Toca para activar'}</p>
                     </div>
                   </button>
-                  <div className="flex gap-1">
-                    <button type="button" onClick={() => handleEliminar(key)}
-                      className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-                      title="Eliminar mes">
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
+                  <button type="button" onClick={() => handleEliminarMes(key)}
+                    className="rounded-lg p-2 text-slate-500 hover:bg-red-900/20 hover:text-red-400">
+                    <Trash2 size={15} />
+                  </button>
                 </div>
-                <dl className="mt-4 grid grid-cols-2 gap-2 text-xs">
+
+                <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
                   <KPI label="Costo / kg"    value={formatCLP(ind.costoTotalPorKilo)} />
                   <KPI label="Kilos totales" value={formatKilos(ind.kilos.total)} />
-                  <KPI label="Indicador"     value={(pos ? '+' : '') + formatCLP(ind.indicadorFabricacion)} color={pos ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'} />
-                  <KPI label="TC pond."      value={ind.tipoCambio ? ind.tipoCambio.toFixed(2) : '—'} />
+                  <KPI label="Indicador" value={(pos ? '+' : '') + formatCLP(ind.indicadorFabricacion)}
+                    color={pos ? 'text-emerald-400' : 'text-red-400'} />
+                  <KPI label="TC pond." value={ind.tipoCambio ? ind.tipoCambio.toFixed(2) : '—'} />
                 </dl>
               </li>
             )
@@ -113,69 +233,22 @@ export default function Historial({ estado }) {
         </ul>
       )}
 
-      {/* — Registro de entradas del mes activo — */}
-      <section className="card p-4">
-        <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">
-          Registro de entradas — {formatMes(mesActivo)}
+      {/* ── Secciones del mes activo ── */}
+      <div className="space-y-3">
+        <h2 className="px-1 text-xs font-bold uppercase tracking-widest text-slate-500">
+          Registros — {formatMes(mesActivo)}
         </h2>
+        {SECCIONES.map((sec) => (
+          <SeccionCategoria
+            key={sec.key}
+            seccion={sec}
+            entradas={mesData[sec.key] || []}
+            onLock={handleLock}
+            onDelete={handleDelete}
+          />
+        ))}
+      </div>
 
-        {logEntries.length === 0 ? (
-          <div className="flex items-center gap-2 py-4 text-sm text-gray-400 dark:text-slate-600">
-            <AlertTriangle size={16} />
-            <span>Sin entradas registradas en este mes.</span>
-          </div>
-        ) : (
-          <ul className="space-y-1.5">
-            {logEntries.map(({ key, idx, r, ts }, i) => {
-              const label = CAT_LABEL[key]
-              const locked = !!r._locked
-              return (
-                <li key={i} className={`flex items-start gap-2 rounded-xl border px-3 py-2.5 transition-colors ${
-                  locked
-                    ? 'border-amber-300/40 bg-amber-900/10 dark:border-amber-700/30 dark:bg-amber-900/10'
-                    : 'border-gray-100 dark:border-ray-border'
-                }`}>
-                  <span className={`mt-0.5 shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold ${CAT_COLOR[label]} ${locked ? 'opacity-40' : ''}`}>
-                    {label}
-                  </span>
-                  <div className={`flex-1 min-w-0 ${locked ? 'opacity-40' : ''}`}>
-                    <p className="text-sm text-gray-800 dark:text-slate-200 truncate">
-                      {rowSummary(key, r)}
-                    </p>
-                    {r.fecha && (
-                      <p className="mt-0.5 text-xs text-gray-400 dark:text-slate-600">{r.fecha}</p>
-                    )}
-                    {ts && !r.fecha && (
-                      <p className="mt-0.5 text-xs text-gray-400 dark:text-slate-600">{fmtTs(ts)}</p>
-                    )}
-                    {locked && <p className="mt-0.5 text-[10px] font-medium text-amber-500">Excluido del cálculo</p>}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleToggleLock(key, idx)}
-                    className={`shrink-0 rounded-lg p-1.5 transition-colors ${
-                      locked
-                        ? 'text-amber-500 hover:bg-amber-900/20'
-                        : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-[#101f38] dark:hover:text-slate-300'
-                    }`}
-                    aria-label={locked ? 'Desbloquear' : 'Bloquear'}
-                  >
-                    {locked ? <Lock size={14} /> : <Unlock size={14} />}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleEliminarEntrada(key, idx)}
-                    className="shrink-0 rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-                    aria-label="Eliminar entrada"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
-        )}
-      </section>
     </div>
   )
 }
@@ -183,8 +256,8 @@ export default function Historial({ estado }) {
 function KPI({ label, value, color }) {
   return (
     <div>
-      <dt className="text-gray-500 dark:text-slate-500">{label}</dt>
-      <dd className={`font-semibold ${color || 'text-gray-900 dark:text-white'}`}>{value}</dd>
+      <dt className="text-slate-500">{label}</dt>
+      <dd className={`font-semibold ${color || 'text-white'}`}>{value}</dd>
     </div>
   )
 }

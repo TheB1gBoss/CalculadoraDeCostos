@@ -19,7 +19,7 @@ export default function Ingreso({ estado }) {
   return (
     <div className="space-y-3">
 
-      <Accordion title="Compras de Bruto" icon={ShoppingCart} defaultOpen>
+      <Accordion title="Compras de Bruto" icon={ShoppingCart}>
         <QuickAdd
           fields={[
             { key: 'fecha',        label: 'Fecha',     type: 'date',   default: today() },

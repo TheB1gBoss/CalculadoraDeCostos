@@ -45,10 +45,11 @@ const EDIT_FIELDS = {
     { key: 'total_clp', label: 'Total CLP', type: 'number', prefix: '$'  },
   ],
   banos_completados: [
-    { key: 'fecha',     label: 'Fecha',         type: 'date'   },
-    { key: 'tipo',      label: 'Tipo de metal', type: 'tipo'   },
-    { key: 'kilos',     label: 'Kilos',         type: 'number', prefix: 'kg' },
-    { key: 'total_clp', label: 'Total R$',      type: 'number', prefix: 'R$' },
+    { key: 'fecha',         label: 'Fecha',           type: 'date'             },
+    { key: 'plata_kilos',   label: 'Plata — Kilos',   type: 'number', prefix: 'kg' },
+    { key: 'plata_reales',  label: 'Plata — R$',      type: 'number', prefix: 'R$' },
+    { key: 'oro_kilos',     label: 'Oro — Kilos',     type: 'number', prefix: 'kg' },
+    { key: 'oro_reales',    label: 'Oro — R$',        type: 'number', prefix: 'R$' },
   ],
   llegadas_mercaderia_por_bloque: [
     { key: 'fecha',   label: 'Fecha',  type: 'date'   },
@@ -182,6 +183,28 @@ function RowContent({ skey, r }) {
     </div>
   )
   if (skey === 'banos_completados') {
+    // Formato nuevo: registro combinado con plata y oro
+    const esNuevo = r.plata_kilos != null || r.plata_reales != null
+    if (esNuevo) {
+      return (
+        <div className="flex-1 min-w-0 px-1 space-y-1.5">
+          <DateChip fecha={r.fecha} />
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-lg bg-slate-400/10 border border-slate-400/20 px-2 py-1.5">
+              <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-0.5">PLATA</div>
+              <div className="text-xs text-slate-200">{formatKilos(r.plata_kilos)}</div>
+              <div className="text-sm font-semibold text-cyan-300">{formatReales(r.plata_reales)}</div>
+            </div>
+            <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-2 py-1.5">
+              <div className="text-[10px] font-bold uppercase tracking-wide text-amber-500 mb-0.5">ORO</div>
+              <div className="text-xs text-slate-200">{formatKilos(r.oro_kilos)}</div>
+              <div className="text-sm font-semibold text-amber-300">{formatReales(r.oro_reales)}</div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+    // Formato antiguo (compatibilidad)
     const esOro = r.tipo === 'oro'
     return (
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-1 px-1">
@@ -189,7 +212,6 @@ function RowContent({ skey, r }) {
         <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold ${
           esOro ? 'bg-amber-500/15 text-amber-300' : 'bg-slate-400/15 text-slate-300'
         }`}>{esOro ? 'ORO' : 'PLATA'}</span>
-        <span className="flex-1 truncate text-sm text-slate-200">{r.detalle || ''}</span>
         <span className="text-xs text-slate-400">{formatKilos(r.kilos)}</span>
         <span className="font-medium text-sm text-cyan-300">{formatReales(r.total_clp)}</span>
       </div>
@@ -307,10 +329,20 @@ export default function Historial({ estado }) {
     if (!confirm('¿Confirmas que quieres editar esta entrada?')) return
     const form = {}
     const fields = EDIT_FIELDS[key] || []
+    // Para baños en formato antiguo, migrar al nuevo esquema combinado
+    const esAntiguo = key === 'banos_completados' && r.plata_kilos == null && r.plata_reales == null
+    const rNorm = esAntiguo && key === 'banos_completados'
+      ? {
+          fecha: r.fecha,
+          plata_kilos:  r.tipo !== 'oro' ? r.kilos     : 0,
+          plata_reales: r.tipo !== 'oro' ? r.total_clp : 0,
+          oro_kilos:    r.tipo === 'oro' ? r.kilos     : 0,
+          oro_reales:   r.tipo === 'oro' ? r.total_clp : 0,
+        }
+      : r
     fields.forEach((f) => {
-      if (f.type === 'tipo') form[f.key] = r[f.key] === 'oro' ? 'oro' : 'plata'
-      else if (f.type === 'number') form[f.key] = formatearNumeroParaInput(r[f.key])
-      else form[f.key] = r[f.key] !== undefined ? String(r[f.key]) : ''
+      if (f.type === 'number') form[f.key] = formatearNumeroParaInput(rNorm[f.key])
+      else form[f.key] = rNorm[f.key] !== undefined ? String(rNorm[f.key]) : ''
     })
     setEditing({ key, idx })
     setEditForm(form)
@@ -327,6 +359,10 @@ export default function Historial({ estado }) {
     const arr = (mesData[key] || []).map((r, i) => {
       if (i !== idx) return r
       const updated = { ...r }
+      // Para baños en formato antiguo, eliminar claves obsoletas al actualizar
+      if (key === 'banos_completados') {
+        delete updated.tipo; delete updated.kilos; delete updated.total_clp
+      }
       fields.forEach((f) => {
         updated[f.key] = f.type === 'number'
           ? parseNumeroFlexible(String(editForm[f.key] ?? ''))

@@ -183,8 +183,9 @@ function BanosAdd({ onAdd }) {
     const pr = parseNumeroFlexible(form['plata_r$'])
     const ok = parseNumeroFlexible(form.oro_kilos)
     const or = parseNumeroFlexible(form['oro_r$'])
-    if (pk > 0 || pr > 0) onAdd({ fecha, tipo: 'plata', kilos: pk, total_clp: pr })
-    if (ok > 0 || or > 0) onAdd({ fecha, tipo: 'oro',   kilos: ok, total_clp: or })
+    if (pk > 0 || pr > 0 || ok > 0 || or > 0) {
+      onAdd({ fecha, plata_kilos: pk, plata_reales: pr, oro_kilos: ok, oro_reales: or })
+    }
     setForm(init())
   }
 

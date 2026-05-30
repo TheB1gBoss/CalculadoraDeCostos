@@ -57,28 +57,41 @@ export function brutoPorKilo(comprasBruto, servicios, tcPonderado) {
  * Nota: banos_completados[].total_clp se trata como R$.
  */
 export function banoPorKilo(banos, tcPonderado) {
-  const totalR$ = sum(banos, (b) => b.total_clp)
-  const totalKilos = sum(banos, (b) => b.kilos)
+  let totalR$ = 0, totalKilos = 0
+  ;(banos || []).forEach((b) => {
+    if (b?.plata_kilos != null || b?.plata_reales != null) {
+      // Formato combinado nuevo
+      totalR$ += (Number(b?.plata_reales) || 0) + (Number(b?.oro_reales) || 0)
+      totalKilos += (Number(b?.plata_kilos) || 0) + (Number(b?.oro_kilos) || 0)
+    } else {
+      // Formato antiguo (tipo + kilos + total_clp)
+      totalR$ += Number(b?.total_clp) || 0
+      totalKilos += Number(b?.kilos) || 0
+    }
+  })
   return safeDiv(totalR$ * tcPonderado, totalKilos)
 }
 
 /**
  * BAÑO separado por tipo de metal (oro / plata).
  *
- * Cada baño lleva un campo `tipo` ('oro' | 'plata'). Los baños sin tipo
- * se consideran 'plata' por defecto (la plata es el grueso del volumen).
- *
- * Devuelve { oro, plata } en CLP/kg, cada uno con su propio denominador:
- *   baño_tipo/kg = (Σ R$_tipo × TC) / Σ kilos_tipo
- *
- * Esto evita que el oro (más caro de chapar) infle el costo de la plata.
+ * Soporta dos formatos:
+ *   Nuevo: { fecha, plata_kilos, plata_reales, oro_kilos, oro_reales }
+ *   Antiguo: { fecha, tipo, kilos, total_clp }  (compatibilidad histórica)
  */
 export function banoPorKiloPorTipo(banos, tcPonderado) {
   const acc = { oro: { r$: 0, kg: 0 }, plata: { r$: 0, kg: 0 } }
   ;(banos || []).forEach((b) => {
-    const tipo = b?.tipo === 'oro' ? 'oro' : 'plata'
-    acc[tipo].r$ += Number(b?.total_clp) || 0
-    acc[tipo].kg += Number(b?.kilos) || 0
+    if (b?.plata_kilos != null || b?.plata_reales != null) {
+      acc.plata.r$ += Number(b?.plata_reales) || 0
+      acc.plata.kg += Number(b?.plata_kilos) || 0
+      acc.oro.r$   += Number(b?.oro_reales) || 0
+      acc.oro.kg   += Number(b?.oro_kilos) || 0
+    } else {
+      const tipo = b?.tipo === 'oro' ? 'oro' : 'plata'
+      acc[tipo].r$ += Number(b?.total_clp) || 0
+      acc[tipo].kg += Number(b?.kilos) || 0
+    }
   })
   return {
     oro:   safeDiv(acc.oro.r$ * tcPonderado, acc.oro.kg),

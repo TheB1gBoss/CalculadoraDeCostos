@@ -73,15 +73,7 @@ export default function Ingreso({ estado }) {
       </Accordion>
 
       <Accordion title="Baños Procesados" icon={Droplet}>
-        <QuickAdd
-          fields={[
-            { key: 'fecha',     label: 'Fecha',          type: 'date',   default: today() },
-            { key: 'tipo',      label: 'Tipo de metal',  type: 'tipo',   default: 'plata' },
-            { key: 'kilos',     label: 'Kilos',          type: 'number', placeholder: '0,000', prefix: 'kg' },
-            { key: 'total_clp', label: 'Total R$',       type: 'number', placeholder: '0,00',  prefix: 'R$' },
-          ]}
-          onAdd={(row) => addRow('banos_completados', row)}
-        />
+        <BanosAdd onAdd={(row) => addRow('banos_completados', row)} />
       </Accordion>
 
       <Accordion title="Kilos Llegados" icon={PackageCheck}>
@@ -174,6 +166,71 @@ function QuickAdd({ fields, onAdd }) {
       </div>
       <button type="button" onClick={handleAdd} className="btn-primary w-full">
         <Plus size={16} /> Agregar
+      </button>
+    </div>
+  )
+}
+
+/* ── Formulario especial para baños (Plata + Oro simultáneo) ── */
+function BanosAdd({ onAdd }) {
+  const init = () => ({ fecha: today(), plata_kilos: '', plata_r$: '', oro_kilos: '', oro_r$: '' })
+  const [form, setForm] = useState(init)
+  const set = (k, v) => setForm((p) => ({ ...p, [k]: v }))
+
+  const handleAdd = () => {
+    const fecha = form.fecha
+    const pk = parseNumeroFlexible(form.plata_kilos)
+    const pr = parseNumeroFlexible(form['plata_r$'])
+    const ok = parseNumeroFlexible(form.oro_kilos)
+    const or = parseNumeroFlexible(form['oro_r$'])
+    if (pk > 0 || pr > 0) onAdd({ fecha, tipo: 'plata', kilos: pk, total_clp: pr })
+    if (ok > 0 || or > 0) onAdd({ fecha, tipo: 'oro',   kilos: ok, total_clp: or })
+    setForm(init())
+  }
+
+  const metalRows = [
+    { tipo: 'plata', label: 'Plata', kilosKey: 'plata_kilos', rKey: 'plata_r$',
+      cls: 'border-slate-400/40 bg-slate-400/5', headCls: 'text-slate-300' },
+    { tipo: 'oro',   label: 'Oro',   kilosKey: 'oro_kilos',   rKey: 'oro_r$',
+      cls: 'border-amber-500/40 bg-amber-500/5', headCls: 'text-amber-300' },
+  ]
+
+  return (
+    <div className="space-y-3">
+      <div className="relative">
+        <Calendar size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ray-cyan" />
+        <input
+          type="date"
+          value={form.fecha || ''}
+          onChange={(e) => set('fecha', e.target.value)}
+          className="input pl-9 font-semibold tracking-wide"
+        />
+      </div>
+      {metalRows.map(({ tipo, label, kilosKey, rKey, cls, headCls }) => (
+        <div key={tipo} className={`rounded-xl border p-3 space-y-2 ${cls}`}>
+          <span className={`text-xs font-bold uppercase tracking-widest ${headCls}`}>{label}</span>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="block">
+              <span className="label">Kilos</span>
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-ray-cyan select-none">kg</span>
+                <input type="text" inputMode="decimal" value={form[kilosKey]} placeholder="0,000"
+                  onChange={(e) => set(kilosKey, e.target.value)} className="input pl-9" />
+              </div>
+            </label>
+            <label className="block">
+              <span className="label">Total R$</span>
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-ray-cyan select-none">R$</span>
+                <input type="text" inputMode="decimal" value={form[rKey]} placeholder="0,00"
+                  onChange={(e) => set(rKey, e.target.value)} className="input pl-9" />
+              </div>
+            </label>
+          </div>
+        </div>
+      ))}
+      <button type="button" onClick={handleAdd} className="btn-primary w-full">
+        <Plus size={16} /> Agregar baños
       </button>
     </div>
   )

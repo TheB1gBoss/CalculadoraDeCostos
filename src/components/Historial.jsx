@@ -1,6 +1,6 @@
 import { ChevronDown, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { formatCLP, formatFecha, formatKilos, formatMes, formatReales } from '../lib/formato.js'
+import { formatCLP, formatFecha, formatKilos, formatMes, formatReales, formatearInputNumero } from '../lib/formato.js'
 import { parseNumeroFlexible } from '../lib/formato.js'
 
 const SECCIONES = [
@@ -95,7 +95,7 @@ function EditForm({ skey, form, onChange, onConfirm, onUndo }) {
                   type={f.type === 'date' ? 'date' : 'text'}
                   inputMode={f.type === 'number' ? 'decimal' : undefined}
                   value={form[f.key] ?? ''}
-                  onChange={(e) => onChange(f.key, e.target.value)}
+                  onChange={(e) => onChange(f.key, f.type === 'number' ? formatearInputNumero(e.target.value) : e.target.value)}
                   className={`input text-sm ${f.prefix ? 'pl-9' : ''}`}
                 />
               </div>
@@ -309,6 +309,7 @@ export default function Historial({ estado }) {
     const fields = EDIT_FIELDS[key] || []
     fields.forEach((f) => {
       if (f.type === 'tipo') form[f.key] = r[f.key] === 'oro' ? 'oro' : 'plata'
+      else if (f.type === 'number') form[f.key] = r[f.key] != null ? formatearInputNumero(String(r[f.key])) : ''
       else form[f.key] = r[f.key] !== undefined ? String(r[f.key]) : ''
     })
     setEditing({ key, idx })

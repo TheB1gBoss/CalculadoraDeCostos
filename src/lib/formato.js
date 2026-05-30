@@ -73,6 +73,30 @@ export function mesActualISO() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
+/**
+ * Formatea un string de input numérico en tiempo real con separadores de miles (puntos)
+ * y decimal (coma): "100711" → "100.711", "100711,88" → "100.711,88"
+ */
+export function formatearInputNumero(raw) {
+  if (raw === '' || raw == null) return ''
+  const s = String(raw)
+  // Separar parte decimal (todo después de la última coma)
+  const commaIdx = s.lastIndexOf(',')
+  let intStr, decStr
+  if (commaIdx >= 0) {
+    intStr = s.slice(0, commaIdx).replace(/\D/g, '')
+    decStr = ',' + s.slice(commaIdx + 1).replace(/\D/g, '')
+  } else {
+    intStr = s.replace(/[^\d]/g, '')
+    decStr = ''
+  }
+  // Agregar puntos cada 3 dígitos en la parte entera
+  if (intStr.length > 3) {
+    intStr = intStr.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  }
+  return intStr + decStr
+}
+
 /** Parsea un input numérico tolerante a separadores chilenos ('1.234,56' o '1234.56'). */
 export function parseNumeroFlexible(input) {
   if (typeof input === 'number') return input

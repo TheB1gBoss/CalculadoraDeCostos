@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Banknote, Calendar, DollarSign, Droplet, Package, PackageCheck, Plus, ShoppingCart, Wrench } from 'lucide-react'
 import Accordion from './Accordion.jsx'
 import PreciosPonderados from './PreciosPonderados.jsx'
-import { parseNumeroFlexible } from '../lib/formato.js'
+import { formatearInputNumero, parseNumeroFlexible } from '../lib/formato.js'
 
 const today = () => {
   const d = new Date()
@@ -147,7 +147,7 @@ function QuickAdd({ fields, onAdd }) {
                   inputMode="decimal"
                   value={form[f.key]}
                   placeholder={f.placeholder}
-                  onChange={(e) => set(f.key, e.target.value)}
+                  onChange={(e) => set(f.key, formatearInputNumero(e.target.value))}
                   className="input pl-9"
                 />
               </div>
@@ -215,7 +215,7 @@ function BanosAdd({ onAdd }) {
               <div className="relative">
                 <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-ray-cyan select-none">kg</span>
                 <input type="text" inputMode="decimal" value={form[kilosKey]} placeholder="0,000"
-                  onChange={(e) => set(kilosKey, e.target.value)} className="input pl-9" />
+                  onChange={(e) => set(kilosKey, formatearInputNumero(e.target.value))} className="input pl-9" />
               </div>
             </label>
             <label className="block">
@@ -223,7 +223,7 @@ function BanosAdd({ onAdd }) {
               <div className="relative">
                 <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-ray-cyan select-none">R$</span>
                 <input type="text" inputMode="decimal" value={form[rKey]} placeholder="0,00"
-                  onChange={(e) => set(rKey, e.target.value)} className="input pl-9" />
+                  onChange={(e) => set(rKey, formatearInputNumero(e.target.value))} className="input pl-9" />
               </div>
             </label>
           </div>
@@ -262,7 +262,7 @@ function LlegadasAdd({ onAdd }) {
               <input
                 type="text" inputMode="decimal"
                 value={form[cat]} placeholder="0,000"
-                onChange={(e) => set(cat, e.target.value)}
+                onChange={(e) => set(cat, formatearInputNumero(e.target.value))}
                 className="input pl-7"
               />
             </div>

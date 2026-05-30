@@ -74,6 +74,18 @@ export function mesActualISO() {
 }
 
 /**
+ * Convierte un número almacenado (float JS) al formato de input chileno para
+ * pre-poblar un campo editable: 54.05 → "54,05" ; 100711.23 → "100.711,23"
+ */
+export function formatearNumeroParaInput(n) {
+  if (n == null || n === '') return ''
+  const num = Number(n)
+  if (!Number.isFinite(num)) return ''
+  if (num === 0) return ''
+  return num.toLocaleString('es-CL', { maximumFractionDigits: 3, minimumFractionDigits: 0 })
+}
+
+/**
  * Formatea un string de input numérico en tiempo real con separadores de miles (puntos)
  * y decimal (coma): "100711" → "100.711", "100711,88" → "100.711,88"
  */

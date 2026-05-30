@@ -1,6 +1,6 @@
 import { ChevronDown, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { formatCLP, formatFecha, formatKilos, formatMes, formatReales, formatearInputNumero } from '../lib/formato.js'
+import { formatCLP, formatFecha, formatKilos, formatMes, formatReales, formatearInputNumero, formatearNumeroParaInput } from '../lib/formato.js'
 import { parseNumeroFlexible } from '../lib/formato.js'
 
 const SECCIONES = [
@@ -309,7 +309,7 @@ export default function Historial({ estado }) {
     const fields = EDIT_FIELDS[key] || []
     fields.forEach((f) => {
       if (f.type === 'tipo') form[f.key] = r[f.key] === 'oro' ? 'oro' : 'plata'
-      else if (f.type === 'number') form[f.key] = r[f.key] != null ? formatearInputNumero(String(r[f.key])) : ''
+      else if (f.type === 'number') form[f.key] = formatearNumeroParaInput(r[f.key])
       else form[f.key] = r[f.key] !== undefined ? String(r[f.key]) : ''
     })
     setEditing({ key, idx })

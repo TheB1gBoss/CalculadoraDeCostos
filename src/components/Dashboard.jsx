@@ -1,5 +1,5 @@
 import { Scale, TrendingDown, TrendingUp } from 'lucide-react'
-import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
+import { CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { calcularIndicadores, MERMA_LLEGADAS, normalizarPorCategoria, variacion } from '../lib/calculos.js'
 import { formatCLP, formatFecha, formatKilos, formatNumero, formatPct } from '../lib/formato.js'
 
@@ -56,6 +56,13 @@ export default function Dashboard({ estado }) {
   const historial = mesesOrdenados.map((key) => ({ key, ind: calcularIndicadores(state.meses[key]) }))
   const currentIdx = mesesOrdenados.indexOf(mesActivo)
   const prevInd = currentIdx > 0 ? historial[currentIdx - 1].ind : null
+
+  /* ── Serie de TC por pago individual (todos los meses) ── */
+  const tcSerie = mesesOrdenados.flatMap((key) =>
+    (state.meses[key]?.pagos || [])
+      .filter((p) => p.reales > 0 && p.chilenos > 0 && p.fecha)
+      .map((p) => ({ fecha: p.fecha, tc: p.chilenos / p.reales, mes: mesLabel(key) }))
+  ).sort((a, b) => a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0)
 
   /* ── Proyección por regresión ── */
   const tcVals    = historial.map((h) => h.ind.tipoCambio)
@@ -225,7 +232,31 @@ export default function Dashboard({ estado }) {
         </article>
       )}
 
-      {/* ── 5. Evolución histórica ── */}
+      {/* ── 5. Gráfico de Tipo de Cambio ── */}
+      {tcSerie.length >= 2 && (
+        <article className="card p-5">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Evolución del tipo de cambio</p>
+          <p className="text-[10px] text-slate-600 mb-4">TC por pago realizado — {tcSerie.length} registros</p>
+          <div className="h-48">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={tcSerie} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#152338" />
+                <XAxis dataKey="fecha" tick={{ fontSize: 9, fill: '#64748b' }} tickFormatter={(v) => v?.slice(5)} interval="preserveStartEnd" />
+                <YAxis tick={{ fontSize: 9, fill: '#64748b' }} tickFormatter={(v) => formatNumero(v, 0)} domain={['auto', 'auto']} />
+                <Tooltip
+                  contentStyle={{ borderRadius: 10, background: '#0b1628', border: '1px solid #152338', fontSize: 11, color: '#e2e8f0' }}
+                  formatter={(v) => [formatNumero(v, 2) + ' CLP/R$', 'TC']}
+                  labelFormatter={(v) => v}
+                />
+                <ReferenceLine y={tipoCambio} stroke="#00d4ff" strokeDasharray="4 4" label={{ value: 'TC actual', fill: '#00d4ff', fontSize: 9, position: 'insideTopRight' }} />
+                <Line type="monotone" dataKey="tc" stroke="#00d4ff" strokeWidth={2} dot={{ r: 3, fill: '#00d4ff' }} activeDot={{ r: 5 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </article>
+      )}
+
+      {/* ── 6. Evolución histórica por mes ── */}
       {historial.length >= 2 && (
         <article className="card p-5">
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">Evolución histórica</p>

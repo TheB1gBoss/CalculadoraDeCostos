@@ -158,11 +158,15 @@ function RowActions({ onEdit, onDelete }) {
 /* ── Contenido de cada fila (sin botones) ── */
 function RowContent({ skey, r }) {
   if (skey === 'compras_bruto') return (
-    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-1 px-1">
-      <DateChip fecha={r.fecha} />
-      <span className="flex-1 truncate text-sm text-slate-200">{r.detalle || '—'}</span>
-      <span className="text-xs text-slate-400">{formatKilos(r.kilos)}</span>
-      <span className="font-medium text-sm text-blue-300">{formatReales(r.total_reales)}</span>
+    <div className="flex-1 min-w-0 px-1 space-y-0.5">
+      <div className="flex items-center gap-2 flex-wrap">
+        <DateChip fecha={r.fecha} />
+        <span className="ml-auto font-semibold text-sm text-blue-300">{formatReales(r.total_reales)}</span>
+      </div>
+      <div className="flex items-center gap-2 pl-0.5">
+        <span className="text-sm text-slate-200 break-words">{r.detalle || '—'}</span>
+        <span className="ml-auto shrink-0 text-xs text-slate-500">{formatKilos(r.kilos)}</span>
+      </div>
     </div>
   )
   if (skey === 'pagos') {
@@ -178,18 +182,26 @@ function RowContent({ skey, r }) {
     )
   }
   if (skey === 'servicios_completados') return (
-    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-1 px-1">
-      <DateChip fecha={r.fecha} />
-      <span className="flex-1 truncate text-sm text-slate-200">{r.detalle || '—'}</span>
-      <span className="font-medium text-sm text-purple-300">{formatReales(r.total_reales)}</span>
+    <div className="flex-1 min-w-0 px-1 space-y-0.5">
+      <div className="flex items-center gap-2 flex-wrap">
+        <DateChip fecha={r.fecha} />
+        <span className="ml-auto font-semibold text-sm text-purple-300">{formatReales(r.total_reales)}</span>
+      </div>
+      <div className="pl-0.5">
+        <span className="text-sm text-slate-200 break-words">{r.detalle || '—'}</span>
+      </div>
     </div>
   )
   if (skey === 'pagos_aduana') return (
-    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-1 px-1">
-      <DateChip fecha={r.fecha} />
-      <span className="flex-1 truncate text-sm text-slate-200">{r.detalle || '—'}</span>
-      <span className="text-xs text-slate-400">{formatKilos(r.kilos)}</span>
-      <span className="font-medium text-sm text-orange-300">{formatCLP(r.total_clp)}</span>
+    <div className="flex-1 min-w-0 px-1 space-y-0.5">
+      <div className="flex items-center gap-2 flex-wrap">
+        <DateChip fecha={r.fecha} />
+        <span className="ml-auto font-semibold text-sm text-orange-300">{formatCLP(r.total_clp)}</span>
+      </div>
+      <div className="flex items-center gap-2 pl-0.5">
+        <span className="text-sm text-slate-200 break-words">{r.detalle || '—'}</span>
+        <span className="ml-auto shrink-0 text-xs text-slate-500">{formatKilos(r.kilos)}</span>
+      </div>
     </div>
   )
   if (skey === 'banos_completados') {

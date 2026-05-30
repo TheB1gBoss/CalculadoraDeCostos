@@ -183,37 +183,27 @@ function RowContent({ skey, r }) {
     </div>
   )
   if (skey === 'banos_completados') {
-    // Formato nuevo: registro combinado con plata y oro
+    // Normalizar formato antiguo al nuevo esquema para mostrar igual
     const esNuevo = r.plata_kilos != null || r.plata_reales != null
-    if (esNuevo) {
-      return (
-        <div className="flex-1 min-w-0 px-1 space-y-1.5">
-          <DateChip fecha={r.fecha} />
-          <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-lg bg-slate-400/10 border border-slate-400/20 px-2 py-1.5">
-              <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-0.5">PLATA</div>
-              <div className="text-xs text-slate-200">{formatKilos(r.plata_kilos)}</div>
-              <div className="text-sm font-semibold text-cyan-300">{formatReales(r.plata_reales)}</div>
-            </div>
-            <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-2 py-1.5">
-              <div className="text-[10px] font-bold uppercase tracking-wide text-amber-500 mb-0.5">ORO</div>
-              <div className="text-xs text-slate-200">{formatKilos(r.oro_kilos)}</div>
-              <div className="text-sm font-semibold text-amber-300">{formatReales(r.oro_reales)}</div>
-            </div>
+    const plata_kilos   = esNuevo ? r.plata_kilos   : (r.tipo !== 'oro' ? r.kilos     : 0)
+    const plata_reales  = esNuevo ? r.plata_reales  : (r.tipo !== 'oro' ? r.total_clp : 0)
+    const oro_kilos     = esNuevo ? r.oro_kilos     : (r.tipo === 'oro' ? r.kilos     : 0)
+    const oro_reales    = esNuevo ? r.oro_reales    : (r.tipo === 'oro' ? r.total_clp : 0)
+    return (
+      <div className="flex-1 min-w-0 px-1 space-y-1.5">
+        <DateChip fecha={r.fecha} />
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-lg bg-slate-400/10 border border-slate-400/20 px-2 py-1.5">
+            <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-0.5">PLATA</div>
+            <div className="text-xs text-slate-300">{formatKilos(plata_kilos)}</div>
+            <div className="text-sm font-semibold text-cyan-300">{formatReales(plata_reales)}</div>
+          </div>
+          <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-2 py-1.5">
+            <div className="text-[10px] font-bold uppercase tracking-wide text-amber-500 mb-0.5">ORO</div>
+            <div className="text-xs text-slate-300">{formatKilos(oro_kilos)}</div>
+            <div className="text-sm font-semibold text-amber-300">{formatReales(oro_reales)}</div>
           </div>
         </div>
-      )
-    }
-    // Formato antiguo (compatibilidad)
-    const esOro = r.tipo === 'oro'
-    return (
-      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-1 px-1">
-        <DateChip fecha={r.fecha} />
-        <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold ${
-          esOro ? 'bg-amber-500/15 text-amber-300' : 'bg-slate-400/15 text-slate-300'
-        }`}>{esOro ? 'ORO' : 'PLATA'}</span>
-        <span className="text-xs text-slate-400">{formatKilos(r.kilos)}</span>
-        <span className="font-medium text-sm text-cyan-300">{formatReales(r.total_clp)}</span>
       </div>
     )
   }
@@ -243,6 +233,9 @@ function RowContent({ skey, r }) {
 function SeccionCategoria({ seccion, entradas, editing, editForm, onEditStart, onEditChange, onEditConfirm, onEditUndo, onDelete }) {
   const { key, label, accent } = seccion
   const ac = AC[accent]
+  // Ordenar por fecha ascendente; guardar índice original para edición/borrado
+  const entradasConIdx = entradas.map((r, idx) => ({ r, idx }))
+  entradasConIdx.sort((a, b) => (a.r.fecha || '') < (b.r.fecha || '') ? -1 : (a.r.fecha || '') > (b.r.fecha || '') ? 1 : 0)
   const count = entradas.length
   const [open, setOpen] = useState(false)
 
@@ -269,7 +262,7 @@ function SeccionCategoria({ seccion, entradas, editing, editForm, onEditStart, o
 
       {open && count > 0 && (
         <div className="space-y-1 px-2 pb-2 border-t border-ray-border/50 pt-1">
-          {entradas.map((r, idx) => {
+          {entradasConIdx.map(({ r, idx }) => {
             const isEditing = editing?.key === key && editing?.idx === idx
             if (isEditing) {
               return (

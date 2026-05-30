@@ -349,7 +349,7 @@ export default function Dashboard({ estado }) {
       </div>
 
       {/* ── 8. Tabla detalle de llegadas ── */}
-      <LlegadasTable llegadas={mesData.llegadas_mercaderia_por_bloque || []} />
+      <LlegadasTable llegadas={mesData.llegadas_mercaderia_por_bloque || []} banos={mesData.banos_completados || []} />
 
     </div>
   )
@@ -380,8 +380,15 @@ function CostoCard({ titulo, acento, total, filas }) {
 }
 
 /* ── Tabla llegadas ── */
-function LlegadasTable({ llegadas }) {
+function LlegadasTable({ llegadas, banos }) {
   if (!llegadas.length) return null
+
+  // Fechas de baños ordenadas cronológicamente como fallback para llegadas sin fecha
+  const banoFechas = [...(banos || [])]
+    .map((b) => b.fecha)
+    .filter(Boolean)
+    .sort()
+
   const totRaw = { MICRO: 0, CADENA: 0, 'ORO GF': 0 }
   llegadas.forEach((b) => {
     totRaw.MICRO    += Number(b.MICRO)      || 0
@@ -391,6 +398,8 @@ function LlegadasTable({ llegadas }) {
   const totMerma = { MICRO: totRaw.MICRO * MERMA_LLEGADAS, CADENA: totRaw.CADENA * MERMA_LLEGADAS, 'ORO GF': totRaw['ORO GF'] * MERMA_LLEGADAS }
   const totalRaw = totRaw.MICRO + totRaw.CADENA + totRaw['ORO GF']
   const totalMerma = totMerma.MICRO + totMerma.CADENA + totMerma['ORO GF']
+
+  const fmtVal = (v) => (v > 0 ? formatKilos(v) : '—')
 
   return (
     <article className="card overflow-hidden p-0">
@@ -407,12 +416,16 @@ function LlegadasTable({ llegadas }) {
       <div className="divide-y divide-ray-border/50">
         {llegadas.map((b, i) => {
           const rowTotal = (b.MICRO || 0) + (b.CADENA || 0) + (b['ORO GF'] || 0)
+          // Usar fecha real del registro; si no tiene, usar la fecha del baño correspondiente
+          const fechaDisplay = b.fecha || banoFechas[i] || null
           return (
             <div key={i} className="grid grid-cols-[90px_1fr_1fr_1fr_72px] items-center gap-x-2 px-5 py-2.5 hover:bg-ray-border/20 transition-colors">
-              <span className="font-mono text-xs text-slate-400">{b.fecha ? formatFecha(b.fecha) : '—'}</span>
-              <span className="text-center text-sm font-medium text-blue-300">{formatKilos(b.MICRO)}</span>
-              <span className="text-center text-sm font-medium text-emerald-300">{formatKilos(b.CADENA)}</span>
-              <span className="text-center text-sm font-medium text-amber-300">{formatKilos(b['ORO GF'])}</span>
+              <span className={`font-mono text-xs ${b.fecha ? 'text-slate-400' : 'text-slate-600 italic'}`}>
+                {fechaDisplay ? formatFecha(fechaDisplay) : `Envío ${i + 1}`}
+              </span>
+              <span className="text-center text-sm font-medium text-blue-300">{fmtVal(b.MICRO)}</span>
+              <span className="text-center text-sm font-medium text-emerald-300">{fmtVal(b.CADENA)}</span>
+              <span className="text-center text-sm font-medium text-amber-300">{fmtVal(b['ORO GF'])}</span>
               <span className="text-right text-sm font-semibold text-white">{formatKilos(rowTotal)}</span>
             </div>
           )

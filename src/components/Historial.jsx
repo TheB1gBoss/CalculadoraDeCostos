@@ -221,9 +221,9 @@ function RowContent({ skey, r }) {
         </div>
         <div className="grid grid-cols-3 gap-2">
           {[['MICRO', r.MICRO, 'text-blue-400'], ['CADENA', r.CADENA, 'text-emerald-400'], ['ORO GF', r['ORO GF'], 'text-amber-400']].map(([cat, val, color]) => (
-            <div key={cat} className="rounded-lg bg-ray-border/60 px-2 py-1.5 text-center">
-              <div className="text-[10px] uppercase tracking-wide text-slate-500">{cat}</div>
-              <div className={`text-sm font-semibold ${color}`}>{formatKilos(val)}</div>
+            <div key={cat} className="rounded-lg bg-ray-border/60 px-1.5 py-1.5 text-center">
+              <div className="text-[9px] uppercase tracking-wide text-slate-500 mb-0.5">{cat}</div>
+              <div className={`text-xs font-semibold whitespace-nowrap ${color}`}>{formatKilos(val)}</div>
             </div>
           ))}
         </div>

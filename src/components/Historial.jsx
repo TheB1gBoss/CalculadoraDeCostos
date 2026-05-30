@@ -192,17 +192,21 @@ function RowContent({ skey, r }) {
     return (
       <div className="flex-1 min-w-0 px-1 space-y-1.5">
         <DateChip fecha={r.fecha} />
-        <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-lg bg-slate-400/10 border border-slate-400/20 px-2 py-1.5">
-            <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-0.5">PLATA</div>
-            <div className="text-xs text-slate-300">{formatKilos(plata_kilos)}</div>
-            <div className="text-sm font-semibold text-cyan-300">{formatReales(plata_reales)}</div>
-          </div>
-          <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-2 py-1.5">
-            <div className="text-[10px] font-bold uppercase tracking-wide text-amber-500 mb-0.5">ORO</div>
-            <div className="text-xs text-slate-300">{formatKilos(oro_kilos)}</div>
-            <div className="text-sm font-semibold text-amber-300">{formatReales(oro_reales)}</div>
-          </div>
+        <div className="flex gap-2">
+          {(plata_kilos > 0 || plata_reales > 0) && (
+            <div className="flex-1 rounded-lg bg-slate-400/10 border border-slate-400/20 px-2 py-1.5">
+              <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-0.5">PLATA</div>
+              <div className="text-xs text-slate-300">{formatKilos(plata_kilos)}</div>
+              <div className="text-sm font-semibold text-cyan-300">{formatReales(plata_reales)}</div>
+            </div>
+          )}
+          {(oro_kilos > 0 || oro_reales > 0) && (
+            <div className="flex-1 rounded-lg bg-amber-500/10 border border-amber-500/20 px-2 py-1.5">
+              <div className="text-[10px] font-bold uppercase tracking-wide text-amber-500 mb-0.5">ORO</div>
+              <div className="text-xs text-slate-300">{formatKilos(oro_kilos)}</div>
+              <div className="text-sm font-semibold text-amber-300">{formatReales(oro_reales)}</div>
+            </div>
+          )}
         </div>
       </div>
     )

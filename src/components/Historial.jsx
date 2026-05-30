@@ -161,23 +161,23 @@ function RowContent({ skey, r }) {
     <div className="flex-1 min-w-0 px-1 space-y-0.5">
       <div className="flex items-center gap-2 flex-wrap">
         <DateChip fecha={r.fecha} />
-        <span className="ml-auto font-semibold text-sm text-blue-300">{formatReales(r.total_reales)}</span>
+        {r.total_reales > 0 && <span className="ml-auto font-semibold text-sm text-blue-300">{formatReales(r.total_reales)}</span>}
       </div>
       <div className="flex items-center gap-2 pl-0.5">
         <span className="text-sm text-slate-200 break-words">{r.detalle || '—'}</span>
-        <span className="ml-auto shrink-0 text-xs text-slate-500">{formatKilos(r.kilos)}</span>
+        {r.kilos > 0 && <span className="ml-auto shrink-0 text-xs text-slate-500">{formatKilos(r.kilos)}</span>}
       </div>
     </div>
   )
   if (skey === 'pagos') {
-    const tc = r.reales ? (r.chilenos / r.reales).toFixed(2) : '—'
+    const tc = r.reales ? (r.chilenos / r.reales).toFixed(2) : null
     return (
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-1 px-1">
         <DateChip fecha={r.fecha} />
-        <span className="font-medium text-sm text-emerald-300">{formatReales(r.reales)}</span>
-        <span className="text-slate-600 text-xs">→</span>
-        <span className="font-medium text-sm text-white">{formatCLP(r.chilenos)}</span>
-        <span className="ml-auto text-xs text-slate-500">TC {tc}</span>
+        {r.reales > 0 && <span className="font-medium text-sm text-emerald-300">{formatReales(r.reales)}</span>}
+        {r.reales > 0 && r.chilenos > 0 && <span className="text-slate-600 text-xs">→</span>}
+        {r.chilenos > 0 && <span className="font-medium text-sm text-white">{formatCLP(r.chilenos)}</span>}
+        {tc && <span className="ml-auto text-xs text-slate-500">TC {tc}</span>}
       </div>
     )
   }
@@ -185,7 +185,7 @@ function RowContent({ skey, r }) {
     <div className="flex-1 min-w-0 px-1 space-y-0.5">
       <div className="flex items-center gap-2 flex-wrap">
         <DateChip fecha={r.fecha} />
-        <span className="ml-auto font-semibold text-sm text-purple-300">{formatReales(r.total_reales)}</span>
+        {r.total_reales > 0 && <span className="ml-auto font-semibold text-sm text-purple-300">{formatReales(r.total_reales)}</span>}
       </div>
       <div className="pl-0.5">
         <span className="text-sm text-slate-200 break-words">{r.detalle || '—'}</span>
@@ -196,12 +196,13 @@ function RowContent({ skey, r }) {
     <div className="flex-1 min-w-0 px-1 space-y-0.5">
       <div className="flex items-center gap-2 flex-wrap">
         <DateChip fecha={r.fecha} />
-        <span className="ml-auto font-semibold text-sm text-orange-300">{formatCLP(r.total_clp)}</span>
+        {r.total_clp > 0 && <span className="ml-auto font-semibold text-sm text-orange-300">{formatCLP(r.total_clp)}</span>}
       </div>
-      <div className="flex items-center gap-2 pl-0.5">
-        <span className="text-sm text-slate-200 break-words">{r.detalle || '—'}</span>
-        <span className="ml-auto shrink-0 text-xs text-slate-500">{formatKilos(r.kilos)}</span>
-      </div>
+      {r.kilos > 0 && (
+        <div className="pl-0.5">
+          <span className="text-xs text-slate-500">{formatKilos(r.kilos)}</span>
+        </div>
+      )}
     </div>
   )
   if (skey === 'banos_completados') {
@@ -218,15 +219,15 @@ function RowContent({ skey, r }) {
           {(plata_kilos > 0 || plata_reales > 0) && (
             <div className="flex-1 rounded-lg bg-slate-400/10 border border-slate-400/20 px-2 py-1.5">
               <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-0.5">PLATA</div>
-              <div className="text-xs text-slate-300">{formatKilos(plata_kilos)}</div>
-              <div className="text-sm font-semibold text-cyan-300">{formatReales(plata_reales)}</div>
+              {plata_kilos > 0 && <div className="text-xs text-slate-300">{formatKilos(plata_kilos)}</div>}
+              {plata_reales > 0 && <div className="text-sm font-semibold text-cyan-300">{formatReales(plata_reales)}</div>}
             </div>
           )}
           {(oro_kilos > 0 || oro_reales > 0) && (
             <div className="flex-1 rounded-lg bg-amber-500/10 border border-amber-500/20 px-2 py-1.5">
               <div className="text-[10px] font-bold uppercase tracking-wide text-amber-500 mb-0.5">ORO</div>
-              <div className="text-xs text-slate-300">{formatKilos(oro_kilos)}</div>
-              <div className="text-sm font-semibold text-amber-300">{formatReales(oro_reales)}</div>
+              {oro_kilos > 0 && <div className="text-xs text-slate-300">{formatKilos(oro_kilos)}</div>}
+              {oro_reales > 0 && <div className="text-sm font-semibold text-amber-300">{formatReales(oro_reales)}</div>}
             </div>
           )}
         </div>
@@ -235,20 +236,23 @@ function RowContent({ skey, r }) {
   }
   if (skey === 'llegadas_mercaderia_por_bloque') {
     const total = (r.MICRO || 0) + (r.CADENA || 0) + (r['ORO GF'] || 0)
+    const cats = [['MICRO', r.MICRO, 'text-blue-400'], ['CADENA', r.CADENA, 'text-emerald-400'], ['ORO GF', r['ORO GF'], 'text-amber-400']].filter(([, val]) => (val || 0) > 0)
     return (
       <div className="flex-1 min-w-0 px-1 space-y-1.5">
         <div className="flex items-center gap-2">
           <DateChip fecha={r.fecha} />
-          <span className="ml-auto text-xs text-slate-400">{formatKilos(total)} bruto</span>
+          {total > 0 && <span className="ml-auto text-xs text-slate-400">{formatKilos(total)} bruto</span>}
         </div>
-        <div className="grid grid-cols-3 gap-2">
-          {[['MICRO', r.MICRO, 'text-blue-400'], ['CADENA', r.CADENA, 'text-emerald-400'], ['ORO GF', r['ORO GF'], 'text-amber-400']].map(([cat, val, color]) => (
-            <div key={cat} className="rounded-lg bg-ray-border/60 px-1.5 py-1.5 text-center">
-              <div className="text-[9px] uppercase tracking-wide text-slate-500 mb-0.5">{cat}</div>
-              <div className={`text-xs font-semibold whitespace-nowrap ${color}`}>{formatKilos(val)}</div>
-            </div>
-          ))}
-        </div>
+        {cats.length > 0 && (
+          <div className={`grid gap-2 ${cats.length === 3 ? 'grid-cols-3' : cats.length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            {cats.map(([cat, val, color]) => (
+              <div key={cat} className="rounded-lg bg-ray-border/60 px-1.5 py-1.5 text-center">
+                <div className="text-[9px] uppercase tracking-wide text-slate-500 mb-0.5">{cat}</div>
+                <div className={`text-xs font-semibold whitespace-nowrap ${color}`}>{formatKilos(val)}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     )
   }

@@ -1,7 +1,7 @@
 import { Scale, TrendingDown, TrendingUp } from 'lucide-react'
 import { CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { calcularIndicadores, MERMA_LLEGADAS, normalizarPorCategoria, variacion } from '../lib/calculos.js'
-import { formatCLP, formatFecha, formatKilos, formatNumero, formatPct } from '../lib/formato.js'
+import { calcularIndicadores, normalizarPorCategoria, variacion } from '../lib/calculos.js'
+import { formatCLP, formatKilos, formatNumero, formatPct } from '../lib/formato.js'
 
 const CAT_COLORS = {
   MICRO:    { dark: '#00d4ff', text: 'text-blue-400'    },
@@ -232,7 +232,16 @@ export default function Dashboard({ estado }) {
         </article>
       )}
 
-      {/* ── 5. Gráfico de Tipo de Cambio ── */}
+      {/* ── 5. Tipo de cambio ponderado + Gráfico de TC ── */}
+      <article className="card p-5">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Tipo de cambio ponderado</p>
+        <p className="mt-1 text-3xl font-bold tracking-tight text-white">
+          {tipoCambio > 0 ? formatNumero(tipoCambio, 2) : '—'}
+          <span className="text-sm font-normal text-slate-500"> CLP/R$</span>
+        </p>
+        <p className="mt-2 text-xs text-slate-600">Σ CLP pagado ÷ Σ R$ pagado</p>
+      </article>
+
       {tcSerie.length >= 2 && (
         <article className="card p-5">
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Evolución del tipo de cambio</p>
@@ -248,7 +257,7 @@ export default function Dashboard({ estado }) {
                   formatter={(v) => [formatNumero(v, 2) + ' CLP/R$', 'TC']}
                   labelFormatter={(v) => v}
                 />
-                <ReferenceLine y={tipoCambio} stroke="#00d4ff" strokeDasharray="4 4" label={{ value: 'TC actual', fill: '#00d4ff', fontSize: 9, position: 'insideTopRight' }} />
+                {tipoCambio > 0 && <ReferenceLine y={tipoCambio} stroke="#00d4ff" strokeDasharray="4 4" label={{ value: 'TC actual', fill: '#00d4ff', fontSize: 9, position: 'insideTopRight' }} />}
                 <Line type="monotone" dataKey="tc" stroke="#00d4ff" strokeWidth={2} dot={{ r: 3, fill: '#00d4ff' }} activeDot={{ r: 5 }} />
               </LineChart>
             </ResponsiveContainer>
@@ -327,25 +336,16 @@ export default function Dashboard({ estado }) {
         </article>
       )}
 
-      {/* ── 7. Tipo de cambio + Kilos + Pie ── */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <article className="card p-5">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Tipo de cambio ponderado</p>
-          <p className="mt-1 text-3xl font-bold tracking-tight text-white">
-            {formatNumero(tipoCambio, 2)}
-            <span className="text-sm font-normal text-slate-500"> CLP/R$</span>
-          </p>
-          <p className="mt-2 text-xs text-slate-600">Σ CLP pagado ÷ Σ R$ pagado</p>
-        </article>
-
+      {/* ── 7. Kilos + Pie ── */}
+      <div className="grid gap-4 sm:grid-cols-2">
         <article className="card p-5">
           <div className="flex items-start justify-between">
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Kilos totales</p>
             <Scale size={16} className="text-slate-600" />
           </div>
-          <p className="mt-1 text-3xl font-bold tracking-tight text-white">{formatKilos(kilos.total)}</p>
+          <p className="mt-1 text-3xl font-bold tracking-tight text-white">{kilos.total > 0 ? formatKilos(kilos.total) : '—'}</p>
           <ul className="mt-3 space-y-1.5">
-            {['MICRO', 'CADENA', 'ORO GF'].map((cat) => (
+            {['MICRO', 'CADENA', 'ORO GF'].filter((cat) => (kilos[cat] || 0) > 0).map((cat) => (
               <li key={cat} className="flex items-center justify-between text-sm">
                 <span className="flex items-center gap-2 text-slate-400">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ background: CAT_COLORS[cat].dark }} />
@@ -379,9 +379,6 @@ export default function Dashboard({ estado }) {
         </article>
       </div>
 
-      {/* ── 8. Tabla detalle de llegadas ── */}
-      <LlegadasTable llegadas={mesData.llegadas_mercaderia_por_bloque || []} banos={mesData.banos_completados || []} />
-
     </div>
   )
 }
@@ -397,7 +394,7 @@ function CostoCard({ titulo, acento, total, filas }) {
           <li key={label} className="py-2">
             <div className="flex justify-between text-sm mb-1.5">
               <span className="text-slate-400">{label}</span>
-              <span className="font-medium text-white">{formatCLP(val)}</span>
+              <span className="font-medium text-white">{val > 0 ? formatCLP(val) : '—'}</span>
             </div>
             <div className="h-1 rounded-full bg-ray-border overflow-hidden">
               <div className="h-full rounded-full bg-ray-cyan/70"
@@ -410,73 +407,3 @@ function CostoCard({ titulo, acento, total, filas }) {
   )
 }
 
-/* ── Tabla llegadas ── */
-function LlegadasTable({ llegadas, banos }) {
-  if (!llegadas.length) return null
-
-  // Fechas de baños ordenadas cronológicamente como fallback para llegadas sin fecha
-  const banoFechas = [...(banos || [])]
-    .map((b) => b.fecha)
-    .filter(Boolean)
-    .sort()
-
-  const totRaw = { MICRO: 0, CADENA: 0, 'ORO GF': 0 }
-  llegadas.forEach((b) => {
-    totRaw.MICRO    += Number(b.MICRO)      || 0
-    totRaw.CADENA   += Number(b.CADENA)     || 0
-    totRaw['ORO GF']+= Number(b['ORO GF']) || 0
-  })
-  const totMerma = { MICRO: totRaw.MICRO * MERMA_LLEGADAS, CADENA: totRaw.CADENA * MERMA_LLEGADAS, 'ORO GF': totRaw['ORO GF'] * MERMA_LLEGADAS }
-  const totalRaw = totRaw.MICRO + totRaw.CADENA + totRaw['ORO GF']
-  const totalMerma = totMerma.MICRO + totMerma.CADENA + totMerma['ORO GF']
-
-  const fmtVal = (v) => (v > 0 ? formatKilos(v) : '—')
-
-  return (
-    <article className="card overflow-hidden p-0">
-      <div className="flex items-center justify-between px-5 py-3 border-b border-ray-border">
-        <h3 className="text-xs font-bold uppercase tracking-widest text-yellow-400">Detalle de llegadas</h3>
-        <span className="text-[10px] text-slate-500">{llegadas.length} {llegadas.length === 1 ? 'envío' : 'envíos'}</span>
-      </div>
-      <div className="grid grid-cols-[90px_1fr_1fr_1fr_72px] gap-x-2 px-5 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-        <span>Fecha</span><span className="text-center text-blue-500">MICRO</span>
-        <span className="text-center text-emerald-500">CADENA</span>
-        <span className="text-center text-amber-500">ORO GF</span>
-        <span className="text-right">Total</span>
-      </div>
-      <div className="divide-y divide-ray-border/50">
-        {llegadas.map((b, i) => {
-          const rowTotal = (b.MICRO || 0) + (b.CADENA || 0) + (b['ORO GF'] || 0)
-          // Usar fecha real del registro; si no tiene, usar la fecha del baño correspondiente
-          const fechaDisplay = b.fecha || banoFechas[i] || null
-          return (
-            <div key={i} className="grid grid-cols-[90px_1fr_1fr_1fr_72px] items-center gap-x-2 px-5 py-2.5 hover:bg-ray-border/20 transition-colors">
-              <span className={`font-mono text-xs ${b.fecha ? 'text-slate-400' : 'text-slate-600 italic'}`}>
-                {fechaDisplay ? formatFecha(fechaDisplay) : `Envío ${i + 1}`}
-              </span>
-              <span className="text-center text-sm font-medium text-blue-300">{fmtVal(b.MICRO)}</span>
-              <span className="text-center text-sm font-medium text-emerald-300">{fmtVal(b.CADENA)}</span>
-              <span className="text-center text-sm font-medium text-amber-300">{fmtVal(b['ORO GF'])}</span>
-              <span className="text-right text-sm font-semibold text-white">{formatKilos(rowTotal)}</span>
-            </div>
-          )
-        })}
-      </div>
-      <div className="grid grid-cols-[90px_1fr_1fr_1fr_72px] items-center gap-x-2 border-t border-ray-border px-5 py-2.5 bg-ray-border/20">
-        <span className="text-[10px] font-bold uppercase text-slate-500">Subtotal</span>
-        <span className="text-center text-sm text-slate-300">{formatKilos(totRaw.MICRO)}</span>
-        <span className="text-center text-sm text-slate-300">{formatKilos(totRaw.CADENA)}</span>
-        <span className="text-center text-sm text-slate-300">{formatKilos(totRaw['ORO GF'])}</span>
-        <span className="text-right text-sm font-semibold text-slate-300">{formatKilos(totalRaw)}</span>
-      </div>
-      <div className="grid grid-cols-[90px_1fr_1fr_1fr_72px] items-center gap-x-2 border-t border-yellow-500/30 px-5 py-2.5 bg-yellow-900/10">
-        <span className="text-[10px] font-bold uppercase text-yellow-500">Con merma</span>
-        <span className="text-center text-sm font-medium text-blue-300">{formatKilos(totMerma.MICRO)}</span>
-        <span className="text-center text-sm font-medium text-emerald-300">{formatKilos(totMerma.CADENA)}</span>
-        <span className="text-center text-sm font-medium text-amber-300">{formatKilos(totMerma['ORO GF'])}</span>
-        <span className="text-right text-sm font-bold text-yellow-300">{formatKilos(totalMerma)}</span>
-      </div>
-      <p className="px-5 pb-3 text-[10px] text-slate-600">* 1% merma aplicada al total acumulado</p>
-    </article>
-  )
-}

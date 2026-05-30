@@ -1,4 +1,4 @@
-import { ChevronDown, Pencil, Trash2 } from 'lucide-react'
+import { Calendar, ChevronDown, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { formatCLP, formatFecha, formatKilos, formatMes, formatReales, formatearInputNumero, formatearNumeroParaInput } from '../lib/formato.js'
 import { parseNumeroFlexible } from '../lib/formato.js'
@@ -66,9 +66,19 @@ function EditForm({ skey, form, onChange, onConfirm, onUndo }) {
     <div className="rounded-xl border border-ray-cyan/20 bg-ray-cyan-dim/10 p-3 space-y-3">
       <div className="grid gap-2 sm:grid-cols-2">
         {fields.map((f) => (
-          <label key={f.key} className="block">
+          <label key={f.key} className={`block ${f.type === 'date' ? 'sm:col-span-2' : ''}`}>
             <span className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{f.label}</span>
-            {f.type === 'tipo' ? (
+            {f.type === 'date' ? (
+              <div className="relative mt-1">
+                <Calendar size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ray-cyan" />
+                <input
+                  type="date"
+                  value={form[f.key] || ''}
+                  onChange={(e) => onChange(f.key, e.target.value)}
+                  className="input pl-9 font-semibold tracking-wide text-sm"
+                />
+              </div>
+            ) : f.type === 'tipo' ? (
               <div className="mt-1 grid grid-cols-2 gap-2">
                 {[{ val: 'plata', label: 'Plata' }, { val: 'oro', label: 'Oro' }].map((opt) => {
                   const active = (form[f.key] || 'plata') === opt.val
@@ -93,7 +103,7 @@ function EditForm({ skey, form, onChange, onConfirm, onUndo }) {
                   </span>
                 )}
                 <input
-                  type={f.type === 'date' ? 'date' : 'text'}
+                  type="text"
                   inputMode={f.type === 'number' ? 'decimal' : undefined}
                   value={form[f.key] ?? ''}
                   onChange={(e) => onChange(f.key, f.type === 'number' ? formatearInputNumero(e.target.value) : e.target.value)}
@@ -321,6 +331,12 @@ export default function Historial({ estado }) {
   const { mesActivo, mesData, mesesOrdenados, setMesActivo } = estado
   const [editing, setEditing] = useState(null) // { key, idx }
   const [editForm, setEditForm] = useState({})
+  const [toast, setToast] = useState(null)
+
+  const showToast = (msg) => {
+    setToast(msg)
+    setTimeout(() => setToast(null), 2500)
+  }
 
   const handleEditStart = (key, idx, r) => {
     if (!confirm('¿Confirmas que quieres editar esta entrada?')) return
@@ -370,6 +386,7 @@ export default function Historial({ estado }) {
     estado.updateMes({ [key]: arr })
     setEditing(null)
     setEditForm({})
+    showToast('✓ Guardado — si cambió la fecha, la entrada se reordenó en la lista')
   }
 
   const handleEditUndo = () => {
@@ -386,6 +403,11 @@ export default function Historial({ estado }) {
 
   return (
     <div className="space-y-4">
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-lg whitespace-nowrap">
+          {toast}
+        </div>
+      )}
       <MesSelector mesesOrdenados={mesesOrdenados} mesActivo={mesActivo} setMesActivo={setMesActivo} />
 
       <div className="space-y-3">

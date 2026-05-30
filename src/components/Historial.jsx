@@ -45,9 +45,10 @@ const EDIT_FIELDS = {
     { key: 'total_clp', label: 'Total CLP', type: 'number', prefix: '$'  },
   ],
   banos_completados: [
-    { key: 'fecha',     label: 'Fecha',    type: 'date'   },
-    { key: 'kilos',     label: 'Kilos',    type: 'number', prefix: 'kg' },
-    { key: 'total_clp', label: 'Total R$', type: 'number', prefix: 'R$' },
+    { key: 'fecha',     label: 'Fecha',         type: 'date'   },
+    { key: 'tipo',      label: 'Tipo de metal', type: 'tipo'   },
+    { key: 'kilos',     label: 'Kilos',         type: 'number', prefix: 'kg' },
+    { key: 'total_clp', label: 'Total R$',      type: 'number', prefix: 'R$' },
   ],
   llegadas_mercaderia_por_bloque: [
     { key: 'fecha',   label: 'Fecha',  type: 'date'   },
@@ -66,20 +67,39 @@ function EditForm({ skey, form, onChange, onConfirm, onUndo }) {
         {fields.map((f) => (
           <label key={f.key} className="block">
             <span className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{f.label}</span>
-            <div className="relative mt-1">
-              {f.prefix && (
-                <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-ray-cyan select-none">
-                  {f.prefix}
-                </span>
-              )}
-              <input
-                type={f.type === 'date' ? 'date' : 'text'}
-                inputMode={f.type === 'number' ? 'decimal' : undefined}
-                value={form[f.key] ?? ''}
-                onChange={(e) => onChange(f.key, e.target.value)}
-                className={`input text-sm ${f.prefix ? 'pl-9' : ''}`}
-              />
-            </div>
+            {f.type === 'tipo' ? (
+              <div className="mt-1 grid grid-cols-2 gap-2">
+                {[{ val: 'plata', label: 'Plata' }, { val: 'oro', label: 'Oro' }].map((opt) => {
+                  const active = (form[f.key] || 'plata') === opt.val
+                  const isOro = opt.val === 'oro'
+                  return (
+                    <button key={opt.val} type="button" onClick={() => onChange(f.key, opt.val)}
+                      className={`rounded-lg border px-2 py-2 text-sm font-semibold transition ${
+                        active
+                          ? (isOro ? 'bg-amber-500/20 border-amber-400 text-amber-200' : 'bg-slate-400/20 border-slate-300 text-white')
+                          : 'border-ray-border text-slate-500'
+                      }`}>
+                      {opt.label}
+                    </button>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="relative mt-1">
+                {f.prefix && (
+                  <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-ray-cyan select-none">
+                    {f.prefix}
+                  </span>
+                )}
+                <input
+                  type={f.type === 'date' ? 'date' : 'text'}
+                  inputMode={f.type === 'number' ? 'decimal' : undefined}
+                  value={form[f.key] ?? ''}
+                  onChange={(e) => onChange(f.key, e.target.value)}
+                  className={`input text-sm ${f.prefix ? 'pl-9' : ''}`}
+                />
+              </div>
+            )}
           </label>
         ))}
       </div>
@@ -161,14 +181,20 @@ function RowContent({ skey, r }) {
       <span className="font-medium text-sm text-orange-300">{formatCLP(r.total_clp)}</span>
     </div>
   )
-  if (skey === 'banos_completados') return (
-    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-1 px-1">
-      <DateChip fecha={r.fecha} />
-      <span className="flex-1 truncate text-sm text-slate-200">{r.detalle || '—'}</span>
-      <span className="text-xs text-slate-400">{formatKilos(r.kilos)}</span>
-      <span className="font-medium text-sm text-cyan-300">{formatReales(r.total_clp)}</span>
-    </div>
-  )
+  if (skey === 'banos_completados') {
+    const esOro = r.tipo === 'oro'
+    return (
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-1 px-1">
+        <DateChip fecha={r.fecha} />
+        <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold ${
+          esOro ? 'bg-amber-500/15 text-amber-300' : 'bg-slate-400/15 text-slate-300'
+        }`}>{esOro ? 'ORO' : 'PLATA'}</span>
+        <span className="flex-1 truncate text-sm text-slate-200">{r.detalle || ''}</span>
+        <span className="text-xs text-slate-400">{formatKilos(r.kilos)}</span>
+        <span className="font-medium text-sm text-cyan-300">{formatReales(r.total_clp)}</span>
+      </div>
+    )
+  }
   if (skey === 'llegadas_mercaderia_por_bloque') {
     const total = (r.MICRO || 0) + (r.CADENA || 0) + (r['ORO GF'] || 0)
     return (
@@ -282,7 +308,8 @@ export default function Historial({ estado }) {
     const form = {}
     const fields = EDIT_FIELDS[key] || []
     fields.forEach((f) => {
-      form[f.key] = r[f.key] !== undefined ? String(r[f.key]) : ''
+      if (f.type === 'tipo') form[f.key] = r[f.key] === 'oro' ? 'oro' : 'plata'
+      else form[f.key] = r[f.key] !== undefined ? String(r[f.key]) : ''
     })
     setEditing({ key, idx })
     setEditForm(form)

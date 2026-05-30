@@ -63,6 +63,30 @@ export function banoPorKilo(banos, tcPonderado) {
 }
 
 /**
+ * BAÑO separado por tipo de metal (oro / plata).
+ *
+ * Cada baño lleva un campo `tipo` ('oro' | 'plata'). Los baños sin tipo
+ * se consideran 'plata' por defecto (la plata es el grueso del volumen).
+ *
+ * Devuelve { oro, plata } en CLP/kg, cada uno con su propio denominador:
+ *   baño_tipo/kg = (Σ R$_tipo × TC) / Σ kilos_tipo
+ *
+ * Esto evita que el oro (más caro de chapar) infle el costo de la plata.
+ */
+export function banoPorKiloPorTipo(banos, tcPonderado) {
+  const acc = { oro: { r$: 0, kg: 0 }, plata: { r$: 0, kg: 0 } }
+  ;(banos || []).forEach((b) => {
+    const tipo = b?.tipo === 'oro' ? 'oro' : 'plata'
+    acc[tipo].r$ += Number(b?.total_clp) || 0
+    acc[tipo].kg += Number(b?.kilos) || 0
+  })
+  return {
+    oro:   safeDiv(acc.oro.r$ * tcPonderado, acc.oro.kg),
+    plata: safeDiv(acc.plata.r$ * tcPonderado, acc.plata.kg),
+  }
+}
+
+/**
  * ADUANA (CLP/kg) = sum(aduana_CLP) / sum(aduana_kilos)
  */
 export function aduanaPorKilo(pagosAduana) {
@@ -83,6 +107,12 @@ export function costoTotalPorKilo({ bruto, bano, aduana }) {
 /* ────────────────────────────────────────────────────────────────────────── */
 
 export const CATEGORIAS = ['MICRO', 'CADENA', 'ORO GF']
+
+/**
+ * Mapeo de cada categoría al tipo de metal cuyo costo de baño le aplica.
+ * MICRO y CADENA son plata; ORO GF es oro.
+ */
+export const CATEGORIA_TIPO = { MICRO: 'plata', CADENA: 'plata', 'ORO GF': 'oro' }
 
 /**
  * El JSON histórico viene con la clave 'MICROZIRCON' en algunos lugares
@@ -120,18 +150,26 @@ export function kilosPorCategoria(llegadas) {
 /* ────────────────────────────────────────────────────────────────────────── */
 
 /**
- * INDICADOR = Σ (kilos_cat × precio_pond_cat) − (kilos_total × costo_total/kg)
+ * INDICADOR = Σ (kilos_cat × precio_pond_cat) − Σ (kilos_cat × costo_cat/kg)
+ *
+ * Cada categoría usa su propio costo según el tipo de metal (oro/plata),
+ * de modo que el oro no contamina el costo de la plata.
+ *
+ * @param {Object} costoPorCat  ej. { MICRO: 480000, CADENA: 480000, 'ORO GF': 620000 }
  *
  * Positivo  → los precios ponderados cubren el costo real (ganancia).
  * Negativo  → los precios están por debajo del costo (pérdida → subir precios).
  */
-export function indicadorFabricacion(kilosCat, preciosPonderados, costoTotal) {
+export function indicadorFabricacion(kilosCat, preciosPonderados, costoPorCat) {
   const precios = normalizarPorCategoria(preciosPonderados)
   const ventas = CATEGORIAS.reduce(
     (acc, cat) => acc + (kilosCat[cat] || 0) * (precios[cat] || 0),
     0,
   )
-  const costo = (kilosCat.total || 0) * (costoTotal || 0)
+  const costo = CATEGORIAS.reduce(
+    (acc, cat) => acc + (kilosCat[cat] || 0) * (costoPorCat?.[cat] || 0),
+    0,
+  )
   return {
     ventasPonderadas: ventas,
     costoTotal: costo,
@@ -160,22 +198,41 @@ const unlock = (arr) => (arr || []).filter((r) => !r._locked)
 export function calcularIndicadores(mes) {
   const tc = tipoCambioPonderado(unlock(mes.pagos))
   const bruto = brutoPorKilo(unlock(mes.compras_bruto), unlock(mes.servicios_completados), tc)
-  const bano = banoPorKilo(unlock(mes.banos_completados), tc)
+  const banos = unlock(mes.banos_completados)
+  const banoTipo = banoPorKiloPorTipo(banos, tc)
+  const banoBlend = banoPorKilo(banos, tc) // promedio mezclado (referencia)
   const aduana = aduanaPorKilo(unlock(mes.pagos_aduana))
-  const total = costoTotalPorKilo({ bruto, bano, aduana })
+
+  // Costos separados por metal
+  const costoOro   = bruto + banoTipo.oro   + aduana
+  const costoPlata = bruto + banoTipo.plata + aduana
+  const costoPorCat = {
+    MICRO:    costoPlata,
+    CADENA:   costoPlata,
+    'ORO GF': costoOro,
+  }
+
+  // Costo "total" mezclado: solo de referencia / fallback
+  const total = bruto + banoBlend + aduana
+
   const kilos = kilosPorCategoria(unlock(mes.llegadas_mercaderia_por_bloque))
   const ind = indicadorFabricacion(
     kilos,
     mes.costos_ponderados_por_kilo || {},
-    total,
+    costoPorCat,
   )
 
   return {
     tipoCambio: tc,
     brutoPorKilo: bruto,
-    banoPorKilo: bano,
+    banoPorKilo: banoBlend,
+    banoOroPorKilo: banoTipo.oro,
+    banoPlataPorKilo: banoTipo.plata,
     aduanaPorKilo: aduana,
     costoTotalPorKilo: total,
+    costoOroPorKilo: costoOro,
+    costoPlataPorKilo: costoPlata,
+    costoPorCategoria: costoPorCat,
     kilos,
     ventasPonderadas: ind.ventasPonderadas,
     costoTotalKilos: ind.costoTotal,

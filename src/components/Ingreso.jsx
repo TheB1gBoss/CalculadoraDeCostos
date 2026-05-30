@@ -75,9 +75,10 @@ export default function Ingreso({ estado }) {
       <Accordion title="Baños Procesados" icon={Droplet}>
         <QuickAdd
           fields={[
-            { key: 'fecha',     label: 'Fecha',     type: 'date',   default: today() },
-            { key: 'kilos',     label: 'Kilos',     type: 'number', placeholder: '0,000', prefix: 'kg' },
-            { key: 'total_clp', label: 'Total R$',  type: 'number', placeholder: '0,00',  prefix: 'R$' },
+            { key: 'fecha',     label: 'Fecha',          type: 'date',   default: today() },
+            { key: 'tipo',      label: 'Tipo de metal',  type: 'tipo',   default: 'plata' },
+            { key: 'kilos',     label: 'Kilos',          type: 'number', placeholder: '0,000', prefix: 'kg' },
+            { key: 'total_clp', label: 'Total R$',       type: 'number', placeholder: '0,00',  prefix: 'R$' },
           ]}
           onAdd={(row) => addRow('banos_completados', row)}
         />
@@ -126,6 +127,22 @@ function QuickAdd({ fields, onAdd }) {
                   onChange={(e) => set(f.key, e.target.value)}
                   className="input pl-9 font-semibold tracking-wide"
                 />
+              </div>
+            ) : f.type === 'tipo' ? (
+              /* ── Toggle Oro / Plata ── */
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { val: 'plata', label: 'Plata', cls: 'text-slate-200 border-slate-400', on: 'bg-slate-400/20 border-slate-300 text-white' },
+                  { val: 'oro',   label: 'Oro',   cls: 'text-amber-300 border-amber-700', on: 'bg-amber-500/20 border-amber-400 text-amber-200' },
+                ].map((opt) => {
+                  const active = (form[f.key] || 'plata') === opt.val
+                  return (
+                    <button key={opt.val} type="button" onClick={() => set(f.key, opt.val)}
+                      className={`rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${active ? opt.on : `border-ray-border text-slate-500`}`}>
+                      {opt.label}
+                    </button>
+                  )
+                })}
               </div>
             ) : f.prefix ? (
               /* ── Número con prefijo (R$, $, kg) ── */

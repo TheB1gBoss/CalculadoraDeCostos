@@ -36,8 +36,9 @@ function mesLabel(yyyyMm) {
 export default function Dashboard({ estado }) {
   const { indicadores, mesData, mesesOrdenados, mesActivo, state } = estado
   const {
-    tipoCambio, brutoPorKilo, banoPorKilo, aduanaPorKilo,
-    costoTotalPorKilo, indicadorFabricacion, kilos,
+    tipoCambio, brutoPorKilo, banoPorKilo, banoOroPorKilo, banoPlataPorKilo, aduanaPorKilo,
+    costoTotalPorKilo, costoOroPorKilo, costoPlataPorKilo, costoPorCategoria,
+    indicadorFabricacion, kilos,
   } = indicadores
 
   const hayData = Object.values(mesData || {}).some((v) => Array.isArray(v) && v.length > 0)
@@ -69,15 +70,16 @@ export default function Dashboard({ estado }) {
     costo: costoFn ? costoFn(n - 1 + off) : null,
   }))
 
-  /* ── Rentabilidad por categoría ── */
+  /* ── Rentabilidad por categoría (cada una con su costo según metal) ── */
   const precios = normalizarPorCategoria(mesData.costos_ponderados_por_kilo || {})
   const margenes = ['MICRO', 'CADENA', 'ORO GF'].map((cat) => {
     const precio = precios[cat] || 0
-    const margen = precio - costoTotalPorKilo
-    const margenPct = costoTotalPorKilo ? margen / costoTotalPorKilo : 0
+    const costoCat = costoPorCategoria?.[cat] || 0
+    const margen = precio - costoCat
+    const margenPct = costoCat ? margen / costoCat : 0
     const kilosCat = kilos[cat] || 0
     const gananciaTotal = margen * kilosCat
-    return { cat, precio, margen, margenPct, kilosCat, gananciaTotal, ok: margen >= 0 }
+    return { cat, precio, costoCat, margen, margenPct, kilosCat, gananciaTotal, ok: margen >= 0 }
   })
 
   /* ── Pie chart ── */
@@ -107,42 +109,47 @@ export default function Dashboard({ estado }) {
         </div>
       </article>
 
-      {/* ── 2. Costo por kg desglosado ── */}
-      <article className="card p-5">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">Costo total / kg</p>
-        <p className="text-3xl font-bold text-white mb-4">{formatCLP(costoTotalPorKilo)}</p>
-        <ul className="divide-y divide-ray-border">
-          {[
-            { label: 'Bruto',  val: brutoPorKilo,  color: 'bg-blue-500'   },
-            { label: 'Baño',   val: banoPorKilo,   color: 'bg-cyan-500'   },
-            { label: 'Aduana', val: aduanaPorKilo, color: 'bg-orange-500' },
-          ].map(({ label, val, color }) => (
-            <li key={label} className="py-2">
-              <div className="flex justify-between text-sm mb-1.5">
-                <span className="text-slate-400">{label}</span>
-                <span className="font-medium text-white">{formatCLP(val)}</span>
-              </div>
-              <div className="h-1 rounded-full bg-ray-border overflow-hidden">
-                <div className={`h-full rounded-full ${color}`}
-                  style={{ width: `${costoTotalPorKilo ? Math.min(val / costoTotalPorKilo * 100, 100) : 0}%` }} />
-              </div>
-            </li>
-          ))}
-        </ul>
-      </article>
+      {/* ── 2. Costo por kg separado Oro / Plata ── */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <CostoCard
+          titulo="Costo Plata / kg" acento="text-slate-200"
+          total={costoPlataPorKilo}
+          filas={[
+            { label: 'Bruto',  val: brutoPorKilo },
+            { label: 'Baño plata', val: banoPlataPorKilo },
+            { label: 'Aduana', val: aduanaPorKilo },
+          ]}
+        />
+        <CostoCard
+          titulo="Costo Oro / kg" acento="text-amber-300"
+          total={costoOroPorKilo}
+          filas={[
+            { label: 'Bruto',  val: brutoPorKilo },
+            { label: 'Baño oro', val: banoOroPorKilo },
+            { label: 'Aduana', val: aduanaPorKilo },
+          ]}
+        />
+      </div>
+
+      {banoOroPorKilo === 0 && (kilos['ORO GF'] || 0) > 0 && (
+        <div className="rounded-xl border border-amber-700/40 bg-amber-900/15 px-4 py-3 text-xs text-amber-300">
+          ⚠ Tienes kilos de <span className="font-semibold">ORO GF</span> pero ningún baño marcado como <span className="font-semibold">Oro</span>.
+          Ve a <span className="font-semibold">Historial → Baños Procesados</span> y edita cada baño de oro para marcarlo, así su costo no se mezcla con la plata.
+        </div>
+      )}
 
       {/* ── 3. Rentabilidad por categoría ── */}
       <article className="card p-5">
         <p className="text-lg font-bold text-white mb-1">Rentabilidad por Categoría</p>
         <p className="mb-4 text-xs text-slate-500">
-          Equilibrio: <span className="font-semibold text-slate-300">{formatCLP(costoTotalPorKilo)} / kg</span>
+          Cada categoría usa su costo real según el metal (oro/plata).
           <span className="mx-2 text-slate-700">·</span>
           Ganancia total: <span className={`font-semibold ${margenes.reduce((s,m)=>s+m.gananciaTotal,0)>=0?'text-emerald-400':'text-red-400'}`}>
             {formatCLP(margenes.reduce((s,m)=>s+m.gananciaTotal,0))}
           </span>
         </p>
         <div className="space-y-4">
-          {margenes.map(({ cat, precio, margen, margenPct, kilosCat, gananciaTotal, ok }) => (
+          {margenes.map(({ cat, precio, costoCat, margen, margenPct, kilosCat, gananciaTotal, ok }) => (
             <div key={cat}>
               {/* Cabecera de categoría */}
               <div className="flex items-center justify-between mb-2">
@@ -150,6 +157,7 @@ export default function Dashboard({ estado }) {
                   <span className="h-2.5 w-2.5 rounded-full" style={{ background: CAT_COLORS[cat].dark }} />
                   <span className="font-bold text-white">{cat}</span>
                   <span className="text-xs text-slate-500">{formatKilos(kilosCat)}</span>
+                  <span className="text-[10px] text-slate-600">· equilibrio {formatCLP(costoCat)}</span>
                 </div>
                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
                   ok ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
@@ -344,6 +352,30 @@ export default function Dashboard({ estado }) {
       <LlegadasTable llegadas={mesData.llegadas_mercaderia_por_bloque || []} />
 
     </div>
+  )
+}
+
+/* ── Tarjeta de costo por kg (Oro o Plata) ── */
+function CostoCard({ titulo, acento, total, filas }) {
+  return (
+    <article className="card p-5">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">{titulo}</p>
+      <p className={`text-3xl font-bold mb-4 ${acento}`}>{formatCLP(total)}</p>
+      <ul className="divide-y divide-ray-border">
+        {filas.map(({ label, val }) => (
+          <li key={label} className="py-2">
+            <div className="flex justify-between text-sm mb-1.5">
+              <span className="text-slate-400">{label}</span>
+              <span className="font-medium text-white">{formatCLP(val)}</span>
+            </div>
+            <div className="h-1 rounded-full bg-ray-border overflow-hidden">
+              <div className="h-full rounded-full bg-ray-cyan/70"
+                style={{ width: `${total ? Math.min(val / total * 100, 100) : 0}%` }} />
+            </div>
+          </li>
+        ))}
+      </ul>
+    </article>
   )
 }
 

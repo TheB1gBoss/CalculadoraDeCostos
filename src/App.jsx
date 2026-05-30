@@ -9,8 +9,8 @@ import { useEstado } from './lib/useEstado.js'
 import { formatCLP, formatNumero } from './lib/formato.js'
 
 function IndicadorBar({ indicadores }) {
-  const { indicadorFabricacion, costoTotalPorKilo, tipoCambio } = indicadores
-  if (!costoTotalPorKilo) return null
+  const { indicadorFabricacion, costoOroPorKilo, costoPlataPorKilo, tipoCambio } = indicadores
+  if (!costoPlataPorKilo && !costoOroPorKilo) return null
   const pos = indicadorFabricacion >= 0
 
   const SEP = <span className="mx-4 text-slate-600 select-none">◆</span>
@@ -25,8 +25,13 @@ function IndicadorBar({ indicadores }) {
       </span>
       {SEP}
       <span className="inline-flex items-center gap-2">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Costo / kg</span>
-        <span className="text-sm font-bold text-white tabular-nums">{formatCLP(costoTotalPorKilo)}</span>
+        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Costo Plata/kg</span>
+        <span className="text-sm font-bold text-white tabular-nums">{formatCLP(costoPlataPorKilo)}</span>
+      </span>
+      {SEP}
+      <span className="inline-flex items-center gap-2">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Costo Oro/kg</span>
+        <span className="text-sm font-bold text-amber-300 tabular-nums">{formatCLP(costoOroPorKilo)}</span>
       </span>
       {SEP}
       <span className="inline-flex items-center gap-2">

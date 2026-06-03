@@ -170,7 +170,7 @@ function RowContent({ skey, r }) {
           <div className="ml-auto shrink-0 flex items-center gap-1.5">
             {r.kilos > 0 && <span className="text-xs text-slate-500">{formatKilos(r.kilos)}</span>}
             {rPorKg > 0 && (
-              <span className="rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold text-blue-300 whitespace-nowrap">
+              <span className="rounded-md bg-ray-border px-1.5 py-0.5 text-[10px] font-semibold text-slate-400 whitespace-nowrap">
                 {new Intl.NumberFormat('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(rPorKg)} R$/kg
               </span>
             )}

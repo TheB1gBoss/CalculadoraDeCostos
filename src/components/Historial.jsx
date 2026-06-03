@@ -157,18 +157,28 @@ function RowActions({ onEdit, onDelete }) {
 
 /* ── Contenido de cada fila (sin botones) ── */
 function RowContent({ skey, r }) {
-  if (skey === 'compras_bruto') return (
-    <div className="flex-1 min-w-0 px-1 space-y-0.5">
-      <div className="flex items-center gap-2 flex-wrap">
-        <DateChip fecha={r.fecha} />
-        {r.total_reales > 0 && <span className="ml-auto font-semibold text-sm text-blue-300">{formatReales(r.total_reales)}</span>}
+  if (skey === 'compras_bruto') {
+    const rPorKg = r.kilos > 0 && r.total_reales > 0 ? r.total_reales / r.kilos : 0
+    return (
+      <div className="flex-1 min-w-0 px-1 space-y-0.5">
+        <div className="flex items-center gap-2 flex-wrap">
+          <DateChip fecha={r.fecha} />
+          {r.total_reales > 0 && <span className="ml-auto font-semibold text-sm text-blue-300">{formatReales(r.total_reales)}</span>}
+        </div>
+        <div className="flex items-center gap-2 pl-0.5">
+          <span className="text-sm text-slate-200 break-words">{r.detalle || '—'}</span>
+          <div className="ml-auto shrink-0 flex items-center gap-1.5">
+            {r.kilos > 0 && <span className="text-xs text-slate-500">{formatKilos(r.kilos)}</span>}
+            {rPorKg > 0 && (
+              <span className="rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold text-blue-300 whitespace-nowrap">
+                {new Intl.NumberFormat('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(rPorKg)} R$/kg
+              </span>
+            )}
+          </div>
+        </div>
       </div>
-      <div className="flex items-center gap-2 pl-0.5">
-        <span className="text-sm text-slate-200 break-words">{r.detalle || '—'}</span>
-        {r.kilos > 0 && <span className="ml-auto shrink-0 text-xs text-slate-500">{formatKilos(r.kilos)}</span>}
-      </div>
-    </div>
-  )
+    )
+  }
   if (skey === 'pagos') {
     const tc = r.reales ? (r.chilenos / r.reales).toFixed(2) : null
     return (

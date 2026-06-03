@@ -1,7 +1,7 @@
-import { Scale, TrendingDown, TrendingUp } from 'lucide-react'
+import { Scale, ShoppingCart, TrendingDown, TrendingUp } from 'lucide-react'
 import { CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { calcularIndicadores, normalizarPorCategoria, variacion } from '../lib/calculos.js'
-import { formatCLP, formatKilos, formatNumero, formatPct } from '../lib/formato.js'
+import { formatCLP, formatFecha, formatKilos, formatNumero, formatPct, formatReales } from '../lib/formato.js'
 
 const CAT_COLORS = {
   MICRO:    { dark: '#00d4ff', text: 'text-blue-400'    },
@@ -89,6 +89,25 @@ export default function Dashboard({ estado }) {
     return { cat, precio, costoCat, margen, margenPct, kilosCat, gananciaTotal, ok: margen >= 0 }
   })
 
+  /* ── Análisis de compras brutas en R$ ── */
+  const comprasActivas = (mesData.compras_bruto || []).filter((c) => (c.kilos || 0) > 0 || (c.total_reales || 0) > 0)
+  const comprasAnalisis = comprasActivas
+    .map((c) => ({ ...c, rPorKg: c.kilos > 0 ? c.total_reales / c.kilos : 0 }))
+    .sort((a, b) => (a.fecha || '') < (b.fecha || '') ? -1 : 1)
+  const totalComprasR$ = comprasActivas.reduce((s, c) => s + (c.total_reales || 0), 0)
+  const totalComprasKg = comprasActivas.reduce((s, c) => s + (c.kilos || 0), 0)
+  const rPorKgPonderado = totalComprasKg > 0 ? totalComprasR$ / totalComprasKg : 0
+  const rPorKgMin = comprasAnalisis.length > 1 ? Math.min(...comprasAnalisis.map((c) => c.rPorKg).filter(Boolean)) : 0
+  const rPorKgMax = comprasAnalisis.length > 1 ? Math.max(...comprasAnalisis.map((c) => c.rPorKg).filter(Boolean)) : 0
+
+  // Evolución R$/kg ponderado por mes
+  const historialRkg = mesesOrdenados.map((key) => {
+    const cs = state.meses[key]?.compras_bruto || []
+    const r  = cs.reduce((s, c) => s + (c.total_reales || 0), 0)
+    const kg = cs.reduce((s, c) => s + (c.kilos || 0), 0)
+    return { key, label: mesLabel(key), rPorKg: kg > 0 ? r / kg : 0, r, kg }
+  }).filter((h) => h.kg > 0)
+
   /* ── Pie chart ── */
   const dataPie = ['MICRO', 'CADENA', 'ORO GF']
     .map((cat) => ({ name: cat, value: kilos[cat] || 0 }))
@@ -137,6 +156,20 @@ export default function Dashboard({ estado }) {
           ]}
         />
       </div>
+
+      {/* ── 2b. Análisis de compras brutas en R$ ── */}
+      {comprasAnalisis.length > 0 && (
+        <ComprasAnalisis
+          compras={comprasAnalisis}
+          ponderado={rPorKgPonderado}
+          min={rPorKgMin}
+          max={rPorKgMax}
+          totalR$={totalComprasR$}
+          totalKg={totalComprasKg}
+          historial={historialRkg}
+          mesActivo={mesActivo}
+        />
+      )}
 
       {banoOroPorKilo === 0 && (kilos['ORO GF'] || 0) > 0 && (
         <div className="rounded-xl border border-amber-700/40 bg-amber-900/15 px-4 py-3 text-xs text-amber-300">
@@ -380,6 +413,114 @@ export default function Dashboard({ estado }) {
       </div>
 
     </div>
+  )
+}
+
+/* ── Análisis compras brutas en R$ ── */
+function ComprasAnalisis({ compras, ponderado, min, max, totalR$, totalKg, historial, mesActivo }) {
+  const fmtRkg = (v) => v > 0 ? formatNumero(v, 2) + ' R$/kg' : '—'
+  const spread = max - min
+
+  return (
+    <article className="card p-5">
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Análisis de Compras — Bruto en R$</p>
+          <p className="mt-1 text-3xl font-bold tracking-tight text-white">
+            {fmtRkg(ponderado)}
+          </p>
+          <p className="text-[10px] text-slate-600 mt-0.5">costo ponderado del mes · {compras.length} {compras.length === 1 ? 'compra' : 'compras'}</p>
+        </div>
+        <ShoppingCart size={20} className="text-slate-600 mt-0.5" />
+      </div>
+
+      {/* Totales rápidos */}
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        <div className="rounded-xl bg-ray-border/40 px-3 py-2.5">
+          <p className="text-[10px] text-slate-500 uppercase tracking-wide">Total R$</p>
+          <p className="text-sm font-semibold text-white mt-0.5">{formatReales(totalR$)}</p>
+        </div>
+        <div className="rounded-xl bg-ray-border/40 px-3 py-2.5">
+          <p className="text-[10px] text-slate-500 uppercase tracking-wide">Total kg comprado</p>
+          <p className="text-sm font-semibold text-white mt-0.5">{formatKilos(totalKg)}</p>
+        </div>
+      </div>
+
+      {/* Tabla por compra */}
+      <div className="space-y-1">
+        <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-600">
+          <span>Proveedor</span>
+          <span className="text-right">kg</span>
+          <span className="text-right">R$ total</span>
+          <span className="text-right">R$/kg</span>
+        </div>
+        {compras.map((c, i) => {
+          const isMin = compras.length > 1 && Math.abs(c.rPorKg - min) < 0.01
+          const isMax = compras.length > 1 && Math.abs(c.rPorKg - max) < 0.01
+          const barPct = spread > 0 ? ((c.rPorKg - min) / spread) * 100 : 50
+          return (
+            <div key={i} className="rounded-xl bg-ray-border/20 px-2 py-2 space-y-1.5">
+              <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 items-center">
+                <div className="min-w-0">
+                  {c.fecha && <span className="font-mono text-[9px] text-slate-600 block">{formatFecha(c.fecha)}</span>}
+                  <span className="text-sm text-slate-200 break-words leading-tight">{c.detalle || '—'}</span>
+                </div>
+                <span className="text-xs text-slate-400 text-right">{c.kilos > 0 ? formatKilos(c.kilos) : ''}</span>
+                <span className="text-xs text-slate-300 text-right">{c.total_reales > 0 ? formatReales(c.total_reales) : ''}</span>
+                <span className={`text-xs font-bold text-right whitespace-nowrap ${isMin ? 'text-emerald-400' : isMax ? 'text-red-400' : 'text-white'}`}>
+                  {fmtRkg(c.rPorKg)}
+                  {isMin && <span className="ml-1 text-[9px] text-emerald-500">↓min</span>}
+                  {isMax && <span className="ml-1 text-[9px] text-red-500">↑max</span>}
+                </span>
+              </div>
+              {/* Barra de posición relativa al rango */}
+              {compras.length > 1 && c.rPorKg > 0 && (
+                <div className="h-1 rounded-full bg-ray-border overflow-hidden">
+                  <div className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${barPct}%`,
+                      background: isMin ? '#34d399' : isMax ? '#ef4444' : '#00d4ff',
+                    }} />
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Rango si hay más de 1 compra */}
+      {compras.length > 1 && spread > 0 && (
+        <div className="mt-3 flex items-center justify-between rounded-xl border border-ray-border/40 px-3 py-2 text-xs">
+          <span className="text-slate-500">Rango del mes</span>
+          <span className="text-emerald-400 font-medium">{fmtRkg(min)} <span className="text-slate-600">↔</span> <span className="text-red-400">{fmtRkg(max)}</span></span>
+          <span className="text-slate-600">Δ {formatNumero(spread, 2)} R$/kg</span>
+        </div>
+      )}
+
+      {/* Evolución histórica R$/kg */}
+      {historial.length >= 2 && (
+        <div className="mt-4 pt-4 border-t border-ray-border/40">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-2">Evolución R$/kg ponderado</p>
+          <div className="space-y-1">
+            {historial.map(({ key, label, rPorKg }) => {
+              const esActivo = key === mesActivo
+              const maxH = Math.max(...historial.map((h) => h.rPorKg))
+              const pct = maxH > 0 ? (rPorKg / maxH) * 100 : 0
+              return (
+                <div key={key} className="grid grid-cols-[60px_1fr_80px] items-center gap-2">
+                  <span className={`text-[10px] font-medium ${esActivo ? 'text-ray-cyan' : 'text-slate-500'}`}>{label}</span>
+                  <div className="h-1.5 rounded-full bg-ray-border overflow-hidden">
+                    <div className="h-full rounded-full"
+                      style={{ width: `${pct}%`, background: esActivo ? '#00d4ff' : '#334155' }} />
+                  </div>
+                  <span className={`text-[10px] text-right font-medium ${esActivo ? 'text-ray-cyan' : 'text-slate-400'}`}>{formatNumero(rPorKg, 2)}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </article>
   )
 }
 

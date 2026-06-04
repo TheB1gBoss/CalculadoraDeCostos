@@ -478,11 +478,23 @@ export default function Dashboard({ estado }) {
 /* ── Precio de compra por proveedor ── */
 function ComprasAnalisis({ compras, ponderado, min, max, totalR$, totalKg, historial, mesActivo }) {
   const fmtRkg  = (v) => v > 0 ? formatNumero(v, 2) : '—'
-  const spread  = max - min
-  const conRkg  = compras.filter((c) => c.rPorKg > 0)
-  const minItem = conRkg.length > 0 ? conRkg.reduce((a, b) => b.rPorKg < a.rPorKg ? b : a) : null
-  const maxItem = conRkg.length > 0 ? conRkg.reduce((a, b) => b.rPorKg > a.rPorKg ? b : a) : null
-  const sorted  = [...compras].sort((a, b) => a.rPorKg - b.rPorKg)
+
+  // Agrupar por proveedor (detalle) con R$/kg ponderado del grupo
+  const gruposMap = {}
+  compras.forEach((c) => {
+    const key = (c.detalle || '—').trim()
+    if (!gruposMap[key]) gruposMap[key] = { nombre: key, kg: 0, r: 0 }
+    gruposMap[key].kg += c.kilos || 0
+    gruposMap[key].r  += c.total_reales || 0
+  })
+  const grupos = Object.values(gruposMap)
+    .map((g) => ({ ...g, rPorKg: g.kg > 0 ? g.r / g.kg : 0 }))
+    .filter((g) => g.rPorKg > 0)
+    .sort((a, b) => a.rPorKg - b.rPorKg)
+
+  const gMin    = grupos[0] || null
+  const gMax    = grupos[grupos.length - 1] || null
+  const gSpread = gMax && gMin ? gMax.rPorKg - gMin.rPorKg : 0
 
   return (
     <article className="card overflow-hidden">
@@ -502,37 +514,37 @@ function ComprasAnalisis({ compras, ponderado, min, max, totalR$, totalKg, histo
       </div>
 
       {/* Min / Max destacados */}
-      {conRkg.length > 1 && minItem && maxItem && (
+      {grupos.length > 1 && gMin && gMax && (
         <div className="grid grid-cols-2 gap-2 px-4 pb-3">
           <div className="rounded-xl bg-emerald-900/20 border border-emerald-700/25 px-3 py-2.5">
             <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-600 mb-0.5">Menor precio</p>
-            <p className="text-base font-bold tabular-nums text-emerald-400">{fmtRkg(minItem.rPorKg)}</p>
-            <p className="text-[10px] text-slate-500 truncate">{minItem.detalle || '—'}</p>
+            <p className="text-base font-bold tabular-nums text-emerald-400">{fmtRkg(gMin.rPorKg)}</p>
+            <p className="text-[10px] text-slate-500 truncate">{gMin.nombre}</p>
           </div>
           <div className="rounded-xl bg-red-900/20 border border-red-700/25 px-3 py-2.5">
             <p className="text-[9px] font-bold uppercase tracking-wider text-red-600 mb-0.5">Mayor precio</p>
-            <p className="text-base font-bold tabular-nums text-red-400">{fmtRkg(maxItem.rPorKg)}</p>
-            <p className="text-[10px] text-slate-500 truncate">{maxItem.detalle || '—'}</p>
+            <p className="text-base font-bold tabular-nums text-red-400">{fmtRkg(gMax.rPorKg)}</p>
+            <p className="text-[10px] text-slate-500 truncate">{gMax.nombre}</p>
           </div>
         </div>
       )}
 
-      {/* Barras por proveedor ordenadas de menor a mayor */}
+      {/* Una barra por proveedor (agrupado), ordenado de menor a mayor R$/kg */}
       <div className="border-t border-ray-border/40 px-4 py-3 space-y-1.5">
-        {sorted.map((c, i) => {
-          const isMin  = c.rPorKg > 0 && Math.abs(c.rPorKg - min) < 0.01
-          const isMax  = c.rPorKg > 0 && Math.abs(c.rPorKg - max) < 0.01
-          const barPct = spread > 0 ? Math.max(6, ((c.rPorKg - min) / spread) * 100) : (c.rPorKg > 0 ? 100 : 0)
-          const color  = isMin ? '#34d399' : isMax ? '#f87171' : '#1e3a5a'
+        {grupos.map((g, i) => {
+          const isMin    = i === 0
+          const isMax    = i === grupos.length - 1
+          const barPct   = gSpread > 0 ? Math.max(6, ((g.rPorKg - gMin.rPorKg) / gSpread) * 100) : 100
+          const color    = isMin ? '#34d399' : isMax ? '#f87171' : '#1e3a5a'
           const valColor = isMin ? 'text-emerald-400' : isMax ? 'text-red-400' : 'text-slate-400'
           return (
-            <div key={i} className="flex items-center gap-2">
-              <span className="w-20 shrink-0 truncate text-[11px] text-slate-300">{c.detalle || '—'}</span>
+            <div key={g.nombre} className="flex items-center gap-2">
+              <span className="w-20 shrink-0 truncate text-[11px] text-slate-300">{g.nombre}</span>
               <div className="flex-1 h-1.5 rounded-full bg-ray-border overflow-hidden">
                 <div className="h-full rounded-full" style={{ width: `${barPct}%`, background: color }} />
               </div>
               <span className={`w-14 shrink-0 text-right text-[11px] tabular-nums font-semibold ${valColor}`}>
-                {fmtRkg(c.rPorKg)}
+                {fmtRkg(g.rPorKg)}
               </span>
             </div>
           )

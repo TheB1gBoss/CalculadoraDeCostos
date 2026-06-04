@@ -19,12 +19,10 @@ const db  = getFirestore(app)
 
 // ── Datos reales por mes ──────────────────────────────────────────────────────
 // Correcciones aplicadas:
-//   Stella → Ring
-//   Alargue / Cadena / Broches → Art Sul
-//   Vera Lucas → Vera Luccas
-//   Marlucci → Marluci
-//   Estrela → Estrella
-//   Dinho / Ds Joyas → Diño
+//   Stella → Ring | Alargue/Cadena/Broches/Sellos → Art Sul
+//   Vera Lucas → Vera Luccas | Marlucci → Marluci
+//   Estrela → Estrella | Dinho/Ds Joyas → Diño
+//   Omitido: pago 17-ene R$5.338 / $554.000 (TC=104 anómalo)
 const COMPRAS_POR_MES = {
   '2025-12': [
     { fecha: '2025-12-01', detalle: 'Total de bruto', kilos: 172.4,  total_reales: 141104 },
@@ -39,7 +37,7 @@ const COMPRAS_POR_MES = {
     { fecha: '2025-12-10', detalle: 'Ring',            kilos: 10.43,  total_reales: 2925   },
     { fecha: '2025-12-11', detalle: 'Art Sul',         kilos: 2.144,  total_reales: 498    },
     { fecha: '2025-12-11', detalle: 'Art Sul',         kilos: 7.3,    total_reales: 11031  },
-    { fecha: '2025-12-11', detalle: 'Sellos',          kilos: 1.63,   total_reales: 824    },
+    { fecha: '2025-12-11', detalle: 'Art Sul',         kilos: 1.63,   total_reales: 824    },
     { fecha: '2025-12-12', detalle: 'Ystand',          kilos: 12.67,  total_reales: 15036  },
     { fecha: '2025-12-15', detalle: 'Marluci',         kilos: 2.43,   total_reales: 776    },
   ],
@@ -113,6 +111,71 @@ const COMPRAS_POR_MES = {
   ],
 }
 
+// ── Pagos reales por mes ─────────────────────────────────────────────────────
+const PAGOS_POR_MES = {
+  '2025-12': [
+    { fecha: '2025-12-01', reales: 141104, chilenos: 26104260 },
+    { fecha: '2025-12-04', reales: 5015,   chilenos: 897789   },
+    { fecha: '2025-12-04', reales: 3907,   chilenos: 698001   },
+    { fecha: '2025-12-04', reales: 19832,  chilenos: 3508567  },
+    { fecha: '2025-12-06', reales: 45900,  chilenos: 7990000  },
+    { fecha: '2025-12-08', reales: 15036,  chilenos: 2706480  },
+    { fecha: '2025-12-12', reales: 33912,  chilenos: 5762779  },
+    { fecha: '2025-12-16', reales: 10000,  chilenos: 1704237  },
+    { fecha: '2025-12-16', reales: 10000,  chilenos: 1704237  },
+    { fecha: '2025-12-16', reales: 10000,  chilenos: 1704237  },
+    { fecha: '2025-12-16', reales: 9355,   chilenos: 1578576  },
+    { fecha: '2025-12-17', reales: 4782,   chilenos: 801271   },
+    { fecha: '2025-12-18', reales: 5218,   chilenos: 885567   },
+    { fecha: '2025-12-29', reales: 23788,  chilenos: 3994727  },
+  ],
+  '2026-01': [
+    { fecha: '2026-01-13', reales: 6009,  chilenos: 1050000  },
+    { fecha: '2026-01-13', reales: 13028, chilenos: 2214777  },
+    { fecha: '2026-01-15', reales: 12275, chilenos: 2086784  },
+    { fecha: '2026-01-15', reales: 4558,  chilenos: 774816   },
+    { fecha: '2026-01-17', reales: 4000,  chilenos: 700000   },
+    // omitido: 17-ene R$5.338/$554.000 (TC=104 anómalo)
+    { fecha: '2026-01-17', reales: 18014, chilenos: 3080400  },
+    { fecha: '2026-01-20', reales: 8977,  chilenos: 1535067  },
+    { fecha: '2026-01-20', reales: 10000, chilenos: 1710000  },
+    { fecha: '2026-01-22', reales: 41633, chilenos: 7045320  },
+    { fecha: '2026-01-26', reales: 74360, chilenos: 13020500 },
+    { fecha: '2026-01-28', reales: 3334,  chilenos: 566780   },
+    { fecha: '2026-01-30', reales: 9962,  chilenos: 1713910  },
+  ],
+  '2026-02': [
+    { fecha: '2026-02-01', reales: 10000, chilenos: 1730000  },
+    { fecha: '2026-02-02', reales: 5571,  chilenos: 958212   },
+    { fecha: '2026-02-02', reales: 4428,  chilenos: 761600   },
+    { fecha: '2026-02-04', reales: 22866, chilenos: 3926935  },
+    { fecha: '2026-02-07', reales: 1513,  chilenos: 260000   },
+    { fecha: '2026-02-09', reales: 9900,  chilenos: 1683000  },
+    { fecha: '2026-02-10', reales: 72800, chilenos: 12250000 },
+    { fecha: '2026-02-10', reales: 12145, chilenos: 2078418  },
+    { fecha: '2026-02-10', reales: 7624,  chilenos: 1311100  },
+    { fecha: '2026-02-11', reales: 42946, chilenos: 7198994  },
+    { fecha: '2026-02-13', reales: 36274, chilenos: 6195980  },
+    { fecha: '2026-02-13', reales: 6480,  chilenos: 1101524  },
+    { fecha: '2026-02-13', reales: 9800,  chilenos: 1666000  },
+    { fecha: '2026-02-27', reales: 27487, chilenos: 4741942  },
+  ],
+  '2026-03': [
+    { fecha: '2026-03-06', reales: 61021,  chilenos: 11221099 },
+    { fecha: '2026-03-09', reales: 11213,  chilenos: 1973463  },
+    { fecha: '2026-03-09', reales: 16360,  chilenos: 2879360  },
+    { fecha: '2026-03-09', reales: 16870,  chilenos: 3036546  },
+    { fecha: '2026-03-09', reales: 6114,   chilenos: 1100520  },
+    { fecha: '2026-03-10', reales: 144200, chilenos: 24775000 },
+    { fecha: '2026-03-16', reales: 67188,  chilenos: 11914125 },
+    { fecha: '2026-03-20', reales: 8826,   chilenos: 1571999  },
+    { fecha: '2026-03-22', reales: 5067,   chilenos: 901691   },
+    { fecha: '2026-03-25', reales: 2153,   chilenos: 378655   },
+    { fecha: '2026-03-31', reales: 29685,  chilenos: 5324240  },
+    { fecha: '2026-03-31', reales: 10096,  chilenos: 1823858  },
+  ],
+}
+
 async function migrar() {
   console.log('Leyendo estado actual de Firestore...')
   const ref  = doc(db, 'calculadora', 'estado')
@@ -138,10 +201,16 @@ async function migrar() {
 
   // Crear o actualizar compras_bruto en cada mes
   for (const [mes, compras] of Object.entries(COMPRAS_POR_MES)) {
-    const base     = estado.meses[mes] || mesVacio()
-    const anterior = base.compras_bruto || []
-    console.log(`  ${mes}: ${anterior.length} entradas → ${compras.length} entradas ${!estado.meses[mes] ? '(nuevo)' : ''}`)
+    const base = estado.meses[mes] || mesVacio()
+    console.log(`  compras ${mes}: ${(base.compras_bruto||[]).length} → ${compras.length} ${!estado.meses[mes] ? '(nuevo)' : ''}`)
     estado.meses[mes] = { ...base, compras_bruto: compras }
+  }
+
+  // Actualizar pagos en cada mes
+  for (const [mes, pagos] of Object.entries(PAGOS_POR_MES)) {
+    const base = estado.meses[mes] || mesVacio()
+    console.log(`  pagos   ${mes}: ${(base.pagos||[]).length} → ${pagos.length}`)
+    estado.meses[mes] = { ...estado.meses[mes], pagos }
   }
 
   console.log('Guardando en Firestore...')

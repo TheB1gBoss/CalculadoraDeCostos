@@ -183,7 +183,58 @@ export default function Dashboard({ estado }) {
         </article>
       )}
 
-      {/* ── 3. Costo Plata / Oro ── */}
+      {/* ── 3. TC ponderado + gráfico ── */}
+      <article className="card overflow-hidden">
+        <div className="px-5 pt-5 pb-4">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Tipo de cambio ponderado</p>
+          <div className="flex items-end gap-2.5 mt-1.5">
+            <span className="text-3xl font-bold text-white tabular-nums">
+              {tipoCambio > 0 ? formatNumero(tipoCambio, 2) : '—'}
+            </span>
+            <span className="mb-0.5 text-sm font-medium text-slate-500">CLP/R$</span>
+          </div>
+          <p className="mt-1 text-[11px] text-slate-600">Σ CLP pagados ÷ Σ R$ pagados</p>
+        </div>
+        {tcSerie.length >= 2 && (
+          <div className="px-4 pb-5">
+            <p className="text-[10px] text-slate-600 mb-3 px-1">{tcSerie.length} pagos registrados</p>
+            <div className="h-44">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={tcSerie} margin={{ top: 4, right: 4, left: -14, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#152338" />
+                  <XAxis dataKey="fecha" tick={{ fontSize: 9, fill: '#475569' }} tickFormatter={(v) => v?.slice(5)} interval="preserveStartEnd" />
+                  <YAxis tick={{ fontSize: 9, fill: '#475569' }} tickFormatter={(v) => formatNumero(v, 0)} domain={['auto', 'auto']} />
+                  <Tooltip
+                    contentStyle={{ borderRadius: 10, background: '#0b1628', border: '1px solid #152338', fontSize: 11, color: '#e2e8f0' }}
+                    formatter={(v) => [formatNumero(v, 2) + ' CLP/R$', 'TC']}
+                    labelFormatter={(v) => v}
+                  />
+                  {tipoCambio > 0 && <ReferenceLine y={tipoCambio} stroke="#00d4ff" strokeDasharray="4 4"
+                    label={{ value: 'ponderado', fill: '#00d4ff', fontSize: 8, position: 'insideTopRight' }} />}
+                  <Line type="monotone" dataKey="tc" stroke="#00d4ff" strokeWidth={2}
+                    dot={{ r: 2.5, fill: '#00d4ff', strokeWidth: 0 }} activeDot={{ r: 4 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+      </article>
+
+      {/* ── 4. Compras análisis R$/kg (tabla) ── */}
+      {comprasAnalisis.length > 0 && (
+        <ComprasAnalisis
+          compras={comprasAnalisis}
+          ponderado={rPorKgPonderado}
+          min={rPorKgMin}
+          max={rPorKgMax}
+          totalR$={totalComprasR$}
+          totalKg={totalComprasKgAll}
+          historial={historialRkg}
+          mesActivo={mesActivo}
+        />
+      )}
+
+      {/* ── 5. Costo Plata / Oro ── */}
       <div className="grid gap-3 sm:grid-cols-2">
         <CostoCard
           titulo="Plata / kg" acento="text-slate-200"
@@ -205,21 +256,7 @@ export default function Dashboard({ estado }) {
         />
       </div>
 
-      {/* ── 4. Compras análisis R$ ── */}
-      {comprasAnalisis.length > 0 && (
-        <ComprasAnalisis
-          compras={comprasAnalisis}
-          ponderado={rPorKgPonderado}
-          min={rPorKgMin}
-          max={rPorKgMax}
-          totalR$={totalComprasR$}
-          totalKg={totalComprasKgAll}
-          historial={historialRkg}
-          mesActivo={mesActivo}
-        />
-      )}
-
-      {/* ── 5. Alerta baño oro faltante ── */}
+      {/* ── 6. Alerta baño oro faltante ── */}
       {banoOroPorKilo === 0 && (kilos['ORO GF'] || 0) > 0 && (
         <div className="rounded-xl border border-amber-700/40 bg-amber-900/15 px-4 py-3 text-xs text-amber-300">
           ⚠ Tienes kilos de <span className="font-semibold">ORO GF</span> sin baño de oro registrado.
@@ -227,7 +264,7 @@ export default function Dashboard({ estado }) {
         </div>
       )}
 
-      {/* ── 6. Rentabilidad por categoría ── */}
+      {/* ── 7. Rentabilidad por categoría ── */}
       <article className="card overflow-hidden">
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Rentabilidad por categoría</p>
@@ -271,154 +308,7 @@ export default function Dashboard({ estado }) {
         </div>
       </article>
 
-      {/* ── 7. TC ponderado + gráfico (una sola card) ── */}
-      <article className="card overflow-hidden">
-        <div className="px-5 pt-5 pb-4">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Tipo de cambio ponderado</p>
-          <div className="flex items-end gap-2.5 mt-1.5">
-            <span className="text-3xl font-bold text-white tabular-nums">
-              {tipoCambio > 0 ? formatNumero(tipoCambio, 2) : '—'}
-            </span>
-            <span className="mb-0.5 text-sm font-medium text-slate-500">CLP/R$</span>
-          </div>
-          <p className="mt-1 text-[11px] text-slate-600">Σ CLP pagados ÷ Σ R$ pagados</p>
-        </div>
-        {tcSerie.length >= 2 && (
-          <div className="px-4 pb-5">
-            <p className="text-[10px] text-slate-600 mb-3 px-1">{tcSerie.length} pagos registrados</p>
-            <div className="h-44">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={tcSerie} margin={{ top: 4, right: 4, left: -14, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#152338" />
-                  <XAxis dataKey="fecha" tick={{ fontSize: 9, fill: '#475569' }} tickFormatter={(v) => v?.slice(5)} interval="preserveStartEnd" />
-                  <YAxis tick={{ fontSize: 9, fill: '#475569' }} tickFormatter={(v) => formatNumero(v, 0)} domain={['auto', 'auto']} />
-                  <Tooltip
-                    contentStyle={{ borderRadius: 10, background: '#0b1628', border: '1px solid #152338', fontSize: 11, color: '#e2e8f0' }}
-                    formatter={(v) => [formatNumero(v, 2) + ' CLP/R$', 'TC']}
-                    labelFormatter={(v) => v}
-                  />
-                  {tipoCambio > 0 && <ReferenceLine y={tipoCambio} stroke="#00d4ff" strokeDasharray="4 4"
-                    label={{ value: 'ponderado', fill: '#00d4ff', fontSize: 8, position: 'insideTopRight' }} />}
-                  <Line type="monotone" dataKey="tc" stroke="#00d4ff" strokeWidth={2}
-                    dot={{ r: 2.5, fill: '#00d4ff', strokeWidth: 0 }} activeDot={{ r: 4 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        )}
-      </article>
-
-      {/* ── 8. Variación vs mes anterior ── */}
-      {prevInd && (
-        <article className="card overflow-hidden">
-          <div className="px-5 pt-5 pb-3">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-              Variación vs {mesLabel(mesesOrdenados[currentIdx - 1])}
-            </p>
-          </div>
-          <div className="divide-y divide-ray-border/40">
-            {[
-              { label: 'Tipo de cambio', actual: tipoCambio,           prev: prevInd.tipoCambio,           fmt: (v) => formatNumero(v, 2) + ' CLP/R$' },
-              { label: 'Costo / kg',     actual: costoTotalPorKilo,    prev: prevInd.costoTotalPorKilo,    fmt: formatCLP  },
-              { label: 'Indicador',      actual: indicadorFabricacion, prev: prevInd.indicadorFabricacion, fmt: formatCLP  },
-              { label: 'Kilos totales',  actual: kilos.total,          prev: prevInd.kilos.total,          fmt: formatKilos },
-            ].map(({ label, actual, prev: p, fmt }) => {
-              const { delta, pct } = variacion(actual, p)
-              const sube = delta >= 0
-              return (
-                <div key={label} className="flex items-center justify-between px-5 py-3">
-                  <div>
-                    <p className="text-xs text-slate-500">{label}</p>
-                    <p className="text-sm font-semibold text-white tabular-nums mt-0.5">{fmt(actual)}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className={`text-xs font-bold tabular-nums ${sube ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {sube ? '▲' : '▼'} {fmt(Math.abs(delta))}
-                    </p>
-                    {pct !== null && <p className="text-[10px] text-slate-600 mt-0.5">{formatPct(Math.abs(pct))}</p>}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </article>
-      )}
-
-      {/* ── 9. Evolución histórica ── */}
-      {historial.length >= 2 && (
-        <article className="card overflow-hidden">
-          <div className="px-5 pt-5 pb-3">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Evolución histórica</p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs min-w-[380px]">
-              <thead>
-                <tr className="border-b border-ray-border/60">
-                  <th className="text-left py-2 px-5 text-[10px] font-bold uppercase tracking-wider text-slate-600">Mes</th>
-                  <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-600">TC</th>
-                  <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-600">Costo/kg</th>
-                  <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-600">Kilos</th>
-                  <th className="text-right py-2 px-5 text-[10px] font-bold uppercase tracking-wider text-slate-600">Indicador</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-ray-border/30">
-                {historial.map(({ key, ind }) => {
-                  const esActivo = key === mesActivo
-                  const indPos   = ind.indicadorFabricacion >= 0
-                  return (
-                    <tr key={key} className={esActivo ? 'bg-ray-cyan/5' : 'hover:bg-ray-border/10 transition-colors'}>
-                      <td className={`py-2.5 px-5 font-semibold ${esActivo ? 'text-ray-cyan' : 'text-slate-400'}`}>
-                        {mesLabel(key)}{esActivo && <span className="ml-1.5 text-[8px]">●</span>}
-                      </td>
-                      <td className="py-2.5 px-3 text-right tabular-nums text-slate-300">{formatNumero(ind.tipoCambio, 2)}</td>
-                      <td className="py-2.5 px-3 text-right tabular-nums text-slate-300">{formatCLP(ind.costoTotalPorKilo)}</td>
-                      <td className="py-2.5 px-3 text-right tabular-nums text-slate-300">{formatKilos(ind.kilos.total)}</td>
-                      <td className={`py-2.5 px-5 text-right tabular-nums font-bold ${indPos ? 'text-emerald-400' : 'text-red-400'}`}>
-                        {indPos ? '+' : ''}{formatCLP(ind.indicadorFabricacion)}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </article>
-      )}
-
-      {/* ── 10. Proyección próximos 3 meses ── */}
-      {n >= 2 && (
-        <article className="card p-5">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Proyección — próximos 3 meses</p>
-          <p className="text-[10px] text-slate-600 mb-4">Tendencia lineal de {n} meses históricos</p>
-          <div className="space-y-2">
-            {proyecciones.map(({ key, tc, costo }, i) => (
-              <div key={key} className={`flex items-center justify-between rounded-xl px-4 py-3 ${
-                i === 0 ? 'bg-ray-cyan/5 border border-ray-cyan/10' : 'bg-ray-border/20'
-              }`}>
-                <span className={`text-sm font-semibold ${i === 0 ? 'text-ray-cyan' : 'text-slate-400'}`}>
-                  {mesLabel(key)}
-                </span>
-                <div className="flex gap-5 text-right">
-                  <div>
-                    <p className="text-[10px] text-slate-600">TC est.</p>
-                    <p className={`text-sm font-semibold tabular-nums ${i === 0 ? 'text-white' : 'text-slate-500'}`}>
-                      {tc ? formatNumero(tc, 2) : '—'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-slate-600">Costo/kg</p>
-                    <p className={`text-sm font-semibold tabular-nums ${i === 0 ? 'text-white' : 'text-slate-500'}`}>
-                      {costo ? formatCLP(costo) : '—'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </article>
-      )}
-
-      {/* ── 11. Kilos llegados + distribución ── */}
+      {/* ── 8. Kilos llegados + distribución ── */}
       <div className="grid gap-3 sm:grid-cols-2">
         <article className="card p-5">
           <div className="flex items-start justify-between mb-3">
@@ -471,78 +361,220 @@ export default function Dashboard({ estado }) {
         </article>
       </div>
 
+      {/* ── 9. Variación vs mes anterior ── */}
+      {prevInd && (
+        <article className="card overflow-hidden">
+          <div className="px-5 pt-5 pb-3">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+              Variación vs {mesLabel(mesesOrdenados[currentIdx - 1])}
+            </p>
+          </div>
+          <div className="divide-y divide-ray-border/40">
+            {[
+              { label: 'Tipo de cambio', actual: tipoCambio,           prev: prevInd.tipoCambio,           fmt: (v) => formatNumero(v, 2) + ' CLP/R$' },
+              { label: 'Costo / kg',     actual: costoTotalPorKilo,    prev: prevInd.costoTotalPorKilo,    fmt: formatCLP  },
+              { label: 'Indicador',      actual: indicadorFabricacion, prev: prevInd.indicadorFabricacion, fmt: formatCLP  },
+              { label: 'Kilos totales',  actual: kilos.total,          prev: prevInd.kilos.total,          fmt: formatKilos },
+            ].map(({ label, actual, prev: p, fmt }) => {
+              const { delta, pct } = variacion(actual, p)
+              const sube = delta >= 0
+              return (
+                <div key={label} className="flex items-center justify-between px-5 py-3">
+                  <div>
+                    <p className="text-xs text-slate-500">{label}</p>
+                    <p className="text-sm font-semibold text-white tabular-nums mt-0.5">{fmt(actual)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-xs font-bold tabular-nums ${sube ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {sube ? '▲' : '▼'} {fmt(Math.abs(delta))}
+                    </p>
+                    {pct !== null && <p className="text-[10px] text-slate-600 mt-0.5">{formatPct(Math.abs(pct))}</p>}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </article>
+      )}
+
+      {/* ── 10. Evolución histórica ── */}
+      {historial.length >= 2 && (
+        <article className="card overflow-hidden">
+          <div className="px-5 pt-5 pb-3">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Evolución histórica</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs min-w-[380px]">
+              <thead>
+                <tr className="border-b border-ray-border/60">
+                  <th className="text-left py-2 px-5 text-[10px] font-bold uppercase tracking-wider text-slate-600">Mes</th>
+                  <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-600">TC</th>
+                  <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-600">Costo/kg</th>
+                  <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-600">Kilos</th>
+                  <th className="text-right py-2 px-5 text-[10px] font-bold uppercase tracking-wider text-slate-600">Indicador</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-ray-border/30">
+                {historial.map(({ key, ind }) => {
+                  const esActivo = key === mesActivo
+                  const indPos   = ind.indicadorFabricacion >= 0
+                  return (
+                    <tr key={key} className={esActivo ? 'bg-ray-cyan/5' : 'hover:bg-ray-border/10 transition-colors'}>
+                      <td className={`py-2.5 px-5 font-semibold ${esActivo ? 'text-ray-cyan' : 'text-slate-400'}`}>
+                        {mesLabel(key)}{esActivo && <span className="ml-1.5 text-[8px]">●</span>}
+                      </td>
+                      <td className="py-2.5 px-3 text-right tabular-nums text-slate-300">{formatNumero(ind.tipoCambio, 2)}</td>
+                      <td className="py-2.5 px-3 text-right tabular-nums text-slate-300">{formatCLP(ind.costoTotalPorKilo)}</td>
+                      <td className="py-2.5 px-3 text-right tabular-nums text-slate-300">{formatKilos(ind.kilos.total)}</td>
+                      <td className={`py-2.5 px-5 text-right tabular-nums font-bold ${indPos ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {indPos ? '+' : ''}{formatCLP(ind.indicadorFabricacion)}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </article>
+      )}
+
+      {/* ── 11. Proyección próximos 3 meses ── */}
+      {n >= 2 && (
+        <article className="card p-5">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Proyección — próximos 3 meses</p>
+          <p className="text-[10px] text-slate-600 mb-4">Tendencia lineal de {n} meses históricos</p>
+          <div className="space-y-2">
+            {proyecciones.map(({ key, tc, costo }, i) => (
+              <div key={key} className={`flex items-center justify-between rounded-xl px-4 py-3 ${
+                i === 0 ? 'bg-ray-cyan/5 border border-ray-cyan/10' : 'bg-ray-border/20'
+              }`}>
+                <span className={`text-sm font-semibold ${i === 0 ? 'text-ray-cyan' : 'text-slate-400'}`}>
+                  {mesLabel(key)}
+                </span>
+                <div className="flex gap-5 text-right">
+                  <div>
+                    <p className="text-[10px] text-slate-600">TC est.</p>
+                    <p className={`text-sm font-semibold tabular-nums ${i === 0 ? 'text-white' : 'text-slate-500'}`}>
+                      {tc ? formatNumero(tc, 2) : '—'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-600">Costo/kg</p>
+                    <p className={`text-sm font-semibold tabular-nums ${i === 0 ? 'text-white' : 'text-slate-500'}`}>
+                      {costo ? formatCLP(costo) : '—'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </article>
+      )}
+
     </div>
   )
 }
 
-/* ── Compras brutas en R$/kg ── */
+/* ── Precio de compra por proveedor ── */
 function ComprasAnalisis({ compras, ponderado, min, max, totalR$, totalKg, historial, mesActivo }) {
   const fmtRkg = (v) => v > 0 ? formatNumero(v, 2) : '—'
   const spread = max - min
 
   return (
     <article className="card overflow-hidden">
-      <div className="px-5 pt-5 pb-4">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">Compras brutas — costo ponderado</p>
-        <div className="flex items-end gap-3">
-          <span className="text-4xl font-bold tracking-tight tabular-nums text-white">{fmtRkg(ponderado)}</span>
-          <span className="mb-1 text-base text-slate-400 font-medium">R$/kg</span>
-        </div>
-        <p className="mt-2 text-xs text-slate-600">
-          {compras.length} {compras.length === 1 ? 'compra' : 'compras'}
-          {totalR$ > 0 && <> · {formatReales(totalR$)}</>}
-          {totalKg > 0 && <> · {formatKilos(totalKg)}</>}
-        </p>
-      </div>
-
-      <div className="divide-y divide-ray-border/40">
-        {compras.map((c, i) => {
-          const isMin    = compras.length > 1 && Math.abs(c.rPorKg - min) < 0.01
-          const isMax    = compras.length > 1 && Math.abs(c.rPorKg - max) < 0.01
-          const barPct   = spread > 0 ? ((c.rPorKg - min) / spread) * 100 : 100
-          const dotColor = isMin ? '#34d399' : isMax ? '#f87171' : '#475569'
-          const rColor   = isMin ? 'text-emerald-400' : isMax ? 'text-red-400' : 'text-white'
-          return (
-            <div key={i} className="px-5 py-3">
-              <div className="flex items-start gap-3">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: dotColor }} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-slate-100 leading-snug">{c.detalle || '—'}</p>
-                  <p className="mt-0.5 text-[11px] text-slate-500">
-                    {c.fecha && <span>{formatFecha(c.fecha)}</span>}
-                    {c.kilos > 0 && <span> · {formatKilos(c.kilos)}</span>}
-                    {c.total_reales > 0 && <span> · {formatReales(c.total_reales)}</span>}
-                  </p>
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className={`text-base font-bold tabular-nums ${rColor}`}>{fmtRkg(c.rPorKg)}</p>
-                  <p className="text-[10px] text-slate-600">R$/kg</p>
-                </div>
-              </div>
-              {compras.length > 1 && (
-                <div className="mt-2.5 ml-4 h-0.5 rounded-full bg-ray-border overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: `${barPct}%`, background: dotColor }} />
-                </div>
-              )}
+      {/* Header */}
+      <div className="px-5 pt-5 pb-4 border-b border-ray-border/40">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">Precio de compra por proveedor</p>
+        <div className="flex items-end justify-between gap-3">
+          <div className="flex items-end gap-2">
+            <span className="text-3xl font-bold tracking-tight tabular-nums text-white">{fmtRkg(ponderado)}</span>
+            <span className="mb-0.5 text-sm font-medium text-slate-500">R$/kg ponderado</span>
+          </div>
+          {compras.length > 1 && spread > 0 && (
+            <div className="flex items-center gap-3 text-[11px] shrink-0">
+              <span className="flex items-center gap-1 text-emerald-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                {fmtRkg(min)}
+              </span>
+              <span className="text-slate-700">–</span>
+              <span className="flex items-center gap-1 text-red-400">
+                {fmtRkg(max)}
+                <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
+              </span>
             </div>
-          )
-        })}
+          )}
+        </div>
+        {(totalR$ > 0 || totalKg > 0) && (
+          <p className="mt-1.5 text-[11px] text-slate-600">
+            {compras.length} {compras.length === 1 ? 'compra' : 'compras'}
+            {totalR$ > 0 && <> · {formatReales(totalR$)}</>}
+            {totalKg > 0 && <> · {formatKilos(totalKg)}</>}
+          </p>
+        )}
       </div>
 
-      {compras.length > 1 && spread > 0 && (
-        <div className="flex items-center justify-between border-t border-ray-border/40 px-5 py-3 text-xs text-slate-500">
-          <span className="flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            mín {fmtRkg(min)} R$/kg
-          </span>
-          <span className="text-slate-700">Δ {formatNumero(spread, 2)}</span>
-          <span className="flex items-center gap-1.5">
-            máx {fmtRkg(max)} R$/kg
-            <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
-          </span>
-        </div>
-      )}
+      {/* Tabla */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-ray-border/60 bg-ray-border/20">
+              <th className="text-left py-2.5 px-5 text-[10px] font-bold uppercase tracking-wider text-slate-600">Proveedor</th>
+              <th className="text-right py-2.5 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-600 border-l border-ray-border/40">Fecha</th>
+              <th className="text-right py-2.5 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-600 border-l border-ray-border/40">Kilos</th>
+              <th className="text-right py-2.5 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-600 border-l border-ray-border/40">R$ total</th>
+              <th className="text-right py-2.5 px-5 text-[10px] font-bold uppercase tracking-wider text-slate-600 border-l border-ray-border/40">R$/kg</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-ray-border/40">
+            {compras.map((c, i) => {
+              const isMin   = compras.length > 1 && c.rPorKg > 0 && Math.abs(c.rPorKg - min) < 0.01
+              const isMax   = compras.length > 1 && c.rPorKg > 0 && Math.abs(c.rPorKg - max) < 0.01
+              const rColor  = isMin ? 'text-emerald-400' : isMax ? 'text-red-400' : 'text-white'
+              return (
+                <tr key={i} className="hover:bg-ray-border/10 transition-colors">
+                  <td className="py-3 px-5 text-slate-200 font-medium max-w-[140px]">
+                    <span className="block truncate">{c.detalle || '—'}</span>
+                  </td>
+                  <td className="py-3 px-4 text-right tabular-nums text-slate-500 border-l border-ray-border/40 whitespace-nowrap">
+                    {c.fecha ? formatFecha(c.fecha) : '—'}
+                  </td>
+                  <td className="py-3 px-4 text-right tabular-nums text-slate-400 border-l border-ray-border/40 whitespace-nowrap">
+                    {c.kilos > 0 ? formatKilos(c.kilos) : '—'}
+                  </td>
+                  <td className="py-3 px-4 text-right tabular-nums text-slate-300 border-l border-ray-border/40 whitespace-nowrap">
+                    {c.total_reales > 0 ? formatReales(c.total_reales) : '—'}
+                  </td>
+                  <td className={`py-3 px-5 text-right tabular-nums font-bold border-l border-ray-border/40 whitespace-nowrap ${rColor}`}>
+                    {fmtRkg(c.rPorKg)}
+                    {(isMin || isMax) && (
+                      <span className={`ml-1.5 text-[9px] font-normal ${isMin ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {isMin ? 'mín' : 'máx'}
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+          <tfoot>
+            <tr className="border-t border-ray-border/60 bg-ray-border/20">
+              <td className="py-3 px-5 text-[10px] font-bold uppercase tracking-wider text-slate-500">Total</td>
+              <td className="py-3 px-4 border-l border-ray-border/40" />
+              <td className="py-3 px-4 text-right tabular-nums font-semibold text-slate-300 border-l border-ray-border/40 whitespace-nowrap">
+                {totalKg > 0 ? formatKilos(totalKg) : '—'}
+              </td>
+              <td className="py-3 px-4 text-right tabular-nums font-semibold text-slate-300 border-l border-ray-border/40 whitespace-nowrap">
+                {totalR$ > 0 ? formatReales(totalR$) : '—'}
+              </td>
+              <td className="py-3 px-5 text-right tabular-nums font-bold text-ray-cyan border-l border-ray-border/40 whitespace-nowrap">
+                {fmtRkg(ponderado)}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
 
+      {/* Evolución histórica R$/kg */}
       {historial.length >= 2 && (
         <div className="border-t border-ray-border/40 px-5 py-4">
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-3">Evolución R$/kg por mes</p>

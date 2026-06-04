@@ -529,27 +529,45 @@ function ComprasAnalisis({ compras, ponderado, min, max, totalR$, totalKg, histo
         </div>
       )}
 
-      {/* Una barra por proveedor (agrupado), ordenado de menor a mayor R$/kg */}
-      <div className="border-t border-ray-border/40 px-4 py-3 space-y-1.5">
-        {grupos.map((g, i) => {
-          const isMin    = i === 0
-          const isMax    = i === grupos.length - 1
-          const barPct   = gSpread > 0 ? Math.max(6, ((g.rPorKg - gMin.rPorKg) / gSpread) * 100) : 100
-          const color    = isMin ? '#34d399' : isMax ? '#f87171' : '#1e3a5a'
-          const valColor = isMin ? 'text-emerald-400' : isMax ? 'text-red-400' : 'text-slate-400'
-          return (
-            <div key={g.nombre} className="flex items-center gap-2">
-              <span className="w-20 shrink-0 truncate text-[11px] text-slate-300">{g.nombre}</span>
-              <div className="flex-1 h-1.5 rounded-full bg-ray-border overflow-hidden">
-                <div className="h-full rounded-full" style={{ width: `${barPct}%`, background: color }} />
-              </div>
-              <span className={`w-14 shrink-0 text-right text-[11px] tabular-nums font-semibold ${valColor}`}>
-                {fmtRkg(g.rPorKg)}
-              </span>
-            </div>
-          )
-        })}
-      </div>
+      {/* Barras: todos si ≤8, si no top-3 baratos + top-3 caros */}
+      {(() => {
+        const MAX_VISIBLE = 8
+        const mostrar = grupos.length <= MAX_VISIBLE
+          ? grupos
+          : [...grupos.slice(0, 3), null, ...grupos.slice(-3)]
+        const ocultos = grupos.length > MAX_VISIBLE ? grupos.length - 6 : 0
+        return (
+          <div className="border-t border-ray-border/40 px-4 py-3 space-y-1.5">
+            {mostrar.map((g, i) => {
+              if (g === null) return (
+                <div key="sep" className="flex items-center gap-2 py-0.5">
+                  <span className="w-20 shrink-0" />
+                  <span className="flex-1 text-center text-[10px] text-slate-600">
+                    · · · {ocultos} proveedores más · · ·
+                  </span>
+                  <span className="w-14 shrink-0" />
+                </div>
+              )
+              const isMin    = grupos.indexOf(g) === 0
+              const isMax    = grupos.indexOf(g) === grupos.length - 1
+              const barPct   = gSpread > 0 ? Math.max(6, ((g.rPorKg - gMin.rPorKg) / gSpread) * 100) : 100
+              const color    = isMin ? '#34d399' : isMax ? '#f87171' : '#1e3a5a'
+              const valColor = isMin ? 'text-emerald-400' : isMax ? 'text-red-400' : 'text-slate-400'
+              return (
+                <div key={g.nombre + i} className="flex items-center gap-2">
+                  <span className="w-20 shrink-0 truncate text-[11px] text-slate-300">{g.nombre}</span>
+                  <div className="flex-1 h-1.5 rounded-full bg-ray-border overflow-hidden">
+                    <div className="h-full rounded-full" style={{ width: `${barPct}%`, background: color }} />
+                  </div>
+                  <span className={`w-14 shrink-0 text-right text-[11px] tabular-nums font-semibold ${valColor}`}>
+                    {fmtRkg(g.rPorKg)}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        )
+      })()}
 
       {/* Footer totales */}
       <div className="flex items-center justify-between border-t border-ray-border/40 px-4 py-2.5">

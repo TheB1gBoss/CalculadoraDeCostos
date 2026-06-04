@@ -477,121 +477,92 @@ export default function Dashboard({ estado }) {
 
 /* ── Precio de compra por proveedor ── */
 function ComprasAnalisis({ compras, ponderado, min, max, totalR$, totalKg, historial, mesActivo }) {
-  const fmtRkg = (v) => v > 0 ? formatNumero(v, 2) : '—'
-  const spread = max - min
+  const fmtRkg  = (v) => v > 0 ? formatNumero(v, 2) : '—'
+  const spread  = max - min
+  const conRkg  = compras.filter((c) => c.rPorKg > 0)
+  const minItem = conRkg.length > 0 ? conRkg.reduce((a, b) => b.rPorKg < a.rPorKg ? b : a) : null
+  const maxItem = conRkg.length > 0 ? conRkg.reduce((a, b) => b.rPorKg > a.rPorKg ? b : a) : null
+  const sorted  = [...compras].sort((a, b) => a.rPorKg - b.rPorKg)
 
   return (
     <article className="card overflow-hidden">
-      {/* Header */}
-      <div className="px-5 pt-5 pb-4 border-b border-ray-border/40">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">Precio de compra por proveedor</p>
-        <div className="flex items-end justify-between gap-3">
-          <div className="flex items-end gap-2">
-            <span className="text-3xl font-bold tracking-tight tabular-nums text-white">{fmtRkg(ponderado)}</span>
-            <span className="mb-0.5 text-sm font-medium text-slate-500">R$/kg ponderado</span>
+      {/* Header compacto */}
+      <div className="px-4 pt-4 pb-3">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Precio de compra por proveedor</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-2xl font-bold tabular-nums text-white">{fmtRkg(ponderado)}</span>
+            <span className="text-xs font-medium text-slate-500">R$/kg pond.</span>
           </div>
-          {compras.length > 1 && spread > 0 && (
-            <div className="flex items-center gap-3 text-[11px] shrink-0">
-              <span className="flex items-center gap-1 text-emerald-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                {fmtRkg(min)}
-              </span>
-              <span className="text-slate-700">–</span>
-              <span className="flex items-center gap-1 text-red-400">
-                {fmtRkg(max)}
-                <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
+          <p className="text-[10px] text-slate-600 text-right">
+            {compras.length} {compras.length === 1 ? 'compra' : 'compras'}
+            {totalKg > 0 && <><br />{formatKilos(totalKg)}</>}
+          </p>
+        </div>
+      </div>
+
+      {/* Min / Max destacados */}
+      {conRkg.length > 1 && minItem && maxItem && (
+        <div className="grid grid-cols-2 gap-2 px-4 pb-3">
+          <div className="rounded-xl bg-emerald-900/20 border border-emerald-700/25 px-3 py-2.5">
+            <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-600 mb-0.5">Menor precio</p>
+            <p className="text-base font-bold tabular-nums text-emerald-400">{fmtRkg(minItem.rPorKg)}</p>
+            <p className="text-[10px] text-slate-500 truncate">{minItem.detalle || '—'}</p>
+          </div>
+          <div className="rounded-xl bg-red-900/20 border border-red-700/25 px-3 py-2.5">
+            <p className="text-[9px] font-bold uppercase tracking-wider text-red-600 mb-0.5">Mayor precio</p>
+            <p className="text-base font-bold tabular-nums text-red-400">{fmtRkg(maxItem.rPorKg)}</p>
+            <p className="text-[10px] text-slate-500 truncate">{maxItem.detalle || '—'}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Barras por proveedor ordenadas de menor a mayor */}
+      <div className="border-t border-ray-border/40 px-4 py-3 space-y-1.5">
+        {sorted.map((c, i) => {
+          const isMin  = c.rPorKg > 0 && Math.abs(c.rPorKg - min) < 0.01
+          const isMax  = c.rPorKg > 0 && Math.abs(c.rPorKg - max) < 0.01
+          const barPct = spread > 0 ? Math.max(6, ((c.rPorKg - min) / spread) * 100) : (c.rPorKg > 0 ? 100 : 0)
+          const color  = isMin ? '#34d399' : isMax ? '#f87171' : '#1e3a5a'
+          const valColor = isMin ? 'text-emerald-400' : isMax ? 'text-red-400' : 'text-slate-400'
+          return (
+            <div key={i} className="flex items-center gap-2">
+              <span className="w-20 shrink-0 truncate text-[11px] text-slate-300">{c.detalle || '—'}</span>
+              <div className="flex-1 h-1.5 rounded-full bg-ray-border overflow-hidden">
+                <div className="h-full rounded-full" style={{ width: `${barPct}%`, background: color }} />
+              </div>
+              <span className={`w-14 shrink-0 text-right text-[11px] tabular-nums font-semibold ${valColor}`}>
+                {fmtRkg(c.rPorKg)}
               </span>
             </div>
-          )}
-        </div>
-        {(totalR$ > 0 || totalKg > 0) && (
-          <p className="mt-1.5 text-[11px] text-slate-600">
-            {compras.length} {compras.length === 1 ? 'compra' : 'compras'}
-            {totalR$ > 0 && <> · {formatReales(totalR$)}</>}
-            {totalKg > 0 && <> · {formatKilos(totalKg)}</>}
-          </p>
-        )}
+          )
+        })}
       </div>
 
-      {/* Tabla */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="border-b border-ray-border/60 bg-ray-border/20">
-              <th className="text-left py-2.5 px-5 text-[10px] font-bold uppercase tracking-wider text-slate-600">Proveedor</th>
-              <th className="text-right py-2.5 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-600 border-l border-ray-border/40">Fecha</th>
-              <th className="text-right py-2.5 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-600 border-l border-ray-border/40">Kilos</th>
-              <th className="text-right py-2.5 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-600 border-l border-ray-border/40">R$ total</th>
-              <th className="text-right py-2.5 px-5 text-[10px] font-bold uppercase tracking-wider text-slate-600 border-l border-ray-border/40">R$/kg</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-ray-border/40">
-            {compras.map((c, i) => {
-              const isMin   = compras.length > 1 && c.rPorKg > 0 && Math.abs(c.rPorKg - min) < 0.01
-              const isMax   = compras.length > 1 && c.rPorKg > 0 && Math.abs(c.rPorKg - max) < 0.01
-              const rColor  = isMin ? 'text-emerald-400' : isMax ? 'text-red-400' : 'text-white'
-              return (
-                <tr key={i} className="hover:bg-ray-border/10 transition-colors">
-                  <td className="py-3 px-5 text-slate-200 font-medium max-w-[140px]">
-                    <span className="block truncate">{c.detalle || '—'}</span>
-                  </td>
-                  <td className="py-3 px-4 text-right tabular-nums text-slate-500 border-l border-ray-border/40 whitespace-nowrap">
-                    {c.fecha ? formatFecha(c.fecha) : '—'}
-                  </td>
-                  <td className="py-3 px-4 text-right tabular-nums text-slate-400 border-l border-ray-border/40 whitespace-nowrap">
-                    {c.kilos > 0 ? formatKilos(c.kilos) : '—'}
-                  </td>
-                  <td className="py-3 px-4 text-right tabular-nums text-slate-300 border-l border-ray-border/40 whitespace-nowrap">
-                    {c.total_reales > 0 ? formatReales(c.total_reales) : '—'}
-                  </td>
-                  <td className={`py-3 px-5 text-right tabular-nums font-bold border-l border-ray-border/40 whitespace-nowrap ${rColor}`}>
-                    {fmtRkg(c.rPorKg)}
-                    {(isMin || isMax) && (
-                      <span className={`ml-1.5 text-[9px] font-normal ${isMin ? 'text-emerald-600' : 'text-red-600'}`}>
-                        {isMin ? 'mín' : 'máx'}
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-          <tfoot>
-            <tr className="border-t border-ray-border/60 bg-ray-border/20">
-              <td className="py-3 px-5 text-[10px] font-bold uppercase tracking-wider text-slate-500">Total</td>
-              <td className="py-3 px-4 border-l border-ray-border/40" />
-              <td className="py-3 px-4 text-right tabular-nums font-semibold text-slate-300 border-l border-ray-border/40 whitespace-nowrap">
-                {totalKg > 0 ? formatKilos(totalKg) : '—'}
-              </td>
-              <td className="py-3 px-4 text-right tabular-nums font-semibold text-slate-300 border-l border-ray-border/40 whitespace-nowrap">
-                {totalR$ > 0 ? formatReales(totalR$) : '—'}
-              </td>
-              <td className="py-3 px-5 text-right tabular-nums font-bold text-ray-cyan border-l border-ray-border/40 whitespace-nowrap">
-                {fmtRkg(ponderado)}
-              </td>
-            </tr>
-          </tfoot>
-        </table>
+      {/* Footer totales */}
+      <div className="flex items-center justify-between border-t border-ray-border/40 px-4 py-2.5">
+        <span className="text-[10px] text-slate-600">{totalR$ > 0 ? formatReales(totalR$) : '—'} · {totalKg > 0 ? formatKilos(totalKg) : '—'}</span>
+        <span className="text-[11px] font-bold text-ray-cyan tabular-nums">{fmtRkg(ponderado)} R$/kg</span>
       </div>
 
-      {/* Evolución histórica R$/kg */}
+      {/* Evolución mensual */}
       {historial.length >= 2 && (
-        <div className="border-t border-ray-border/40 px-5 py-4">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-3">Evolución R$/kg por mes</p>
-          <div className="space-y-2">
+        <div className="border-t border-ray-border/40 px-4 py-3">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-2">Evolución mensual R$/kg</p>
+          <div className="space-y-1.5">
             {historial.map(({ key, label, rPorKg }) => {
               const esActivo = key === mesActivo
               const maxH     = Math.max(...historial.map((h) => h.rPorKg))
               const pct      = maxH > 0 ? (rPorKg / maxH) * 100 : 0
               return (
-                <div key={key} className="flex items-center gap-3">
-                  <span className={`w-14 shrink-0 text-right text-[10px] font-medium ${esActivo ? 'text-ray-cyan' : 'text-slate-500'}`}>
+                <div key={key} className="flex items-center gap-2">
+                  <span className={`w-12 shrink-0 text-right text-[10px] font-medium ${esActivo ? 'text-ray-cyan' : 'text-slate-500'}`}>
                     {label}
                   </span>
-                  <div className="flex-1 h-1.5 rounded-full bg-ray-border overflow-hidden">
+                  <div className="flex-1 h-1 rounded-full bg-ray-border overflow-hidden">
                     <div className="h-full rounded-full" style={{ width: `${pct}%`, background: esActivo ? '#00d4ff' : '#1e3a5a' }} />
                   </div>
-                  <span className={`w-16 shrink-0 text-right text-[10px] tabular-nums ${esActivo ? 'text-ray-cyan font-semibold' : 'text-slate-500'}`}>
+                  <span className={`w-14 shrink-0 text-right text-[10px] tabular-nums ${esActivo ? 'text-ray-cyan font-semibold' : 'text-slate-500'}`}>
                     {formatNumero(rPorKg, 2)}
                   </span>
                 </div>

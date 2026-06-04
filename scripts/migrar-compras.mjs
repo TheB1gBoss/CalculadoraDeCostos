@@ -18,11 +18,17 @@ const app = initializeApp(firebaseConfig)
 const db  = getFirestore(app)
 
 // ── Datos reales por mes ──────────────────────────────────────────────────────
-// Correcciones: Stella→Ring, Alargue/Cadena/Broches→Art Sul
+// Correcciones aplicadas:
+//   Stella → Ring
+//   Alargue / Cadena / Broches → Art Sul
+//   Vera Lucas → Vera Luccas
+//   Marlucci → Marluci
+//   Estrela → Estrella
+//   Dinho / Ds Joyas → Diño
 const COMPRAS_POR_MES = {
   '2025-12': [
     { fecha: '2025-12-01', detalle: 'Total de bruto', kilos: 172.4,  total_reales: 141104 },
-    { fecha: '2025-12-02', detalle: 'Vera Luccas',    kilos: 5.18,   total_reales: 2931   },
+    { fecha: '2025-12-02', detalle: 'Vera Luccas',  kilos: 5.18,   total_reales: 2931   },
     { fecha: '2025-12-03', detalle: 'Art Sul',         kilos: 2.03,   total_reales: 472    },
     { fecha: '2025-12-04', detalle: 'Art Sul',         kilos: 1.105,  total_reales: 466    },
     { fecha: '2025-12-04', detalle: 'Art Sul',         kilos: 2.84,   total_reales: 2418   },
@@ -49,7 +55,7 @@ const COMPRAS_POR_MES = {
     { fecha: '2026-01-15', detalle: 'Marluci',    kilos: 1.995,  total_reales: 752   },
     { fecha: '2026-01-27', detalle: 'Marluci',    kilos: 4.569,  total_reales: 1839  },
     { fecha: '2026-01-28', detalle: 'Art Sul',    kilos: 0.15,   total_reales: 73    },
-    { fecha: '2026-01-28', detalle: 'Estrela',    kilos: 1,      total_reales: 522   },
+    { fecha: '2026-01-28', detalle: 'Estrella',   kilos: 1,      total_reales: 522   },
     { fecha: '2026-01-26', detalle: 'Medusa',     kilos: 2.5,    total_reales: 1440  },
     { fecha: '2026-01-27', detalle: 'Medusa',     kilos: 6,      total_reales: 5880  },
     { fecha: '2026-01-28', detalle: 'Vera Luccas',kilos: 3,      total_reales: 3334  },
@@ -59,7 +65,7 @@ const COMPRAS_POR_MES = {
     { fecha: '2026-02-04', detalle: 'Sanchez',     kilos: 5.73,  total_reales: 9962  },
     { fecha: '2026-02-04', detalle: 'Rolisola',    kilos: 18.78, total_reales: 22866 },
     { fecha: '2026-02-06', detalle: 'Ello Max',    kilos: 1.268, total_reales: 330   },
-    { fecha: '2026-02-07', detalle: 'Ds Joyas',    kilos: 0.93,  total_reales: 1513  },
+    { fecha: '2026-02-07', detalle: 'Diño',        kilos: 0.93,  total_reales: 1513  },
     { fecha: '2026-02-10', detalle: 'Rolisola',    kilos: 7.11,  total_reales: 7624  },
     { fecha: '2026-02-11', detalle: 'Ello Max',    kilos: 23.7,  total_reales: 12146 },
     { fecha: '2026-02-13', detalle: 'Ystand',      kilos: 20,    total_reales: 11683 },
@@ -89,7 +95,7 @@ const COMPRAS_POR_MES = {
     { fecha: '2026-03-23', detalle: 'Ystand',      kilos: 17,     total_reales: 8826  },
     { fecha: '2026-03-24', detalle: 'Metal Sul',   kilos: 9,      total_reales: 8907  },
     { fecha: '2026-03-31', detalle: 'Metal Sul',   kilos: 1.006,  total_reales: 1412  },
-    { fecha: '2026-03-31', detalle: 'Dinho',       kilos: 10.7,   total_reales: 29685 },
+    { fecha: '2026-03-31', detalle: 'Diño',        kilos: 10.7,   total_reales: 29685 },
   ],
   '2026-04': [
     { fecha: '2026-04-02', detalle: 'Marluci',    kilos: 4.93,  total_reales: 1782  },
@@ -120,15 +126,22 @@ async function migrar() {
   const estado = snap.data()
   console.log('Meses actuales:', Object.keys(estado.meses || {}).sort().join(', '))
 
-  // Reemplazar compras_bruto en cada mes
+  const mesVacio = () => ({
+    compras_bruto: [],
+    pagos: [],
+    banos_completados: [],
+    llegadas_mercaderia_por_bloque: [],
+    servicios_completados: [],
+    pagos_aduana: [],
+    costos_ponderados_por_kilo: { MICRO: 570000, CADENA: 405000, 'ORO GF': 1500000 },
+  })
+
+  // Crear o actualizar compras_bruto en cada mes
   for (const [mes, compras] of Object.entries(COMPRAS_POR_MES)) {
-    if (!estado.meses[mes]) {
-      console.log(`  ⚠  Mes ${mes} no existe en Firestore, se omite`)
-      continue
-    }
-    const anterior = estado.meses[mes].compras_bruto || []
-    console.log(`  ${mes}: ${anterior.length} entradas → ${compras.length} entradas`)
-    estado.meses[mes] = { ...estado.meses[mes], compras_bruto: compras }
+    const base     = estado.meses[mes] || mesVacio()
+    const anterior = base.compras_bruto || []
+    console.log(`  ${mes}: ${anterior.length} entradas → ${compras.length} entradas ${!estado.meses[mes] ? '(nuevo)' : ''}`)
+    estado.meses[mes] = { ...base, compras_bruto: compras }
   }
 
   console.log('Guardando en Firestore...')

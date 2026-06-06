@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Banknote, Calendar, DollarSign, Droplet, Package, PackageCheck, Plus, ShoppingCart, Wrench } from 'lucide-react'
 import Accordion from './Accordion.jsx'
 import PreciosPonderados from './PreciosPonderados.jsx'
-import { formatearInputNumero, parseNumeroFlexible } from '../lib/formato.js'
+import { formatearInputNumero, parseNumeroFlexible, formatFecha, formatKilos, formatCLP, formatReales } from '../lib/formato.js'
 
 const today = () => {
   const d = new Date()
@@ -19,6 +19,8 @@ export default function Ingreso({ estado }) {
 
   return (
     <div className="space-y-3">
+
+      <UltimoIngreso mesData={mesData} />
 
       <Accordion title="Precios Ponderados por Kg" icon={DollarSign}>
         <PreciosPonderados
@@ -84,6 +86,126 @@ export default function Ingreso({ estado }) {
         Las entradas registradas se ven en la pestaña <span className="font-semibold">Historial</span>.
       </p>
     </div>
+  )
+}
+
+/* ── UltimoIngreso: card resumen del registro más reciente ── */
+const SECCIONES_META = [
+  {
+    key: 'compras_bruto',
+    label: 'Compra de bruto',
+    icon: ShoppingCart,
+    color: 'text-ray-cyan',
+    border: 'border-ray-cyan/20',
+    dot: 'bg-ray-cyan',
+    detalle: (r) => [
+      r.detalle || null,
+      r.kilos > 0 ? formatKilos(r.kilos) : null,
+      r.total_reales > 0 ? formatReales(r.total_reales) : null,
+    ].filter(Boolean),
+  },
+  {
+    key: 'pagos',
+    label: 'Pago realizado',
+    icon: Banknote,
+    color: 'text-emerald-400',
+    border: 'border-emerald-700/30',
+    dot: 'bg-emerald-400',
+    detalle: (r) => [
+      r.reales > 0 ? formatReales(r.reales) : null,
+      r.chilenos > 0 ? formatCLP(r.chilenos) : null,
+    ].filter(Boolean),
+  },
+  {
+    key: 'servicios_completados',
+    label: 'Servicio de fabricación',
+    icon: Wrench,
+    color: 'text-violet-400',
+    border: 'border-violet-700/30',
+    dot: 'bg-violet-400',
+    detalle: (r) => [
+      r.detalle || null,
+      r.total_reales > 0 ? formatReales(r.total_reales) : null,
+    ].filter(Boolean),
+  },
+  {
+    key: 'pagos_aduana',
+    label: 'Pago a aduana',
+    icon: Package,
+    color: 'text-amber-400',
+    border: 'border-amber-700/30',
+    dot: 'bg-amber-400',
+    detalle: (r) => [
+      r.kilos > 0 ? formatKilos(r.kilos) : null,
+      r.total_clp > 0 ? formatCLP(r.total_clp) : null,
+    ].filter(Boolean),
+  },
+  {
+    key: 'banos_completados',
+    label: 'Baño procesado',
+    icon: Droplet,
+    color: 'text-blue-400',
+    border: 'border-blue-700/30',
+    dot: 'bg-blue-400',
+    detalle: (r) => [
+      (r.plata_kilos || 0) > 0 ? `Plata ${formatKilos(r.plata_kilos)}` : null,
+      (r.oro_kilos || 0) > 0 ? `Oro ${formatKilos(r.oro_kilos)}` : null,
+    ].filter(Boolean),
+  },
+  {
+    key: 'llegadas_mercaderia_por_bloque',
+    label: 'Llegada de mercadería',
+    icon: PackageCheck,
+    color: 'text-teal-400',
+    border: 'border-teal-700/30',
+    dot: 'bg-teal-400',
+    detalle: (r) => [
+      (r.MICRO || 0) > 0 ? `MICRO ${formatKilos(r.MICRO)}` : null,
+      (r.CADENA || 0) > 0 ? `CADENA ${formatKilos(r.CADENA)}` : null,
+      (r['ORO GF'] || 0) > 0 ? `ORO GF ${formatKilos(r['ORO GF'])}` : null,
+    ].filter(Boolean),
+  },
+]
+
+function UltimoIngreso({ mesData }) {
+  let best = null
+  for (const sec of SECCIONES_META) {
+    for (const item of mesData[sec.key] || []) {
+      if (!best || (item._ts || 0) > (best.item._ts || 0)) {
+        best = { sec, item }
+      }
+    }
+  }
+
+  if (!best) return null
+
+  const { sec, item } = best
+  const Icon = sec.icon
+  const detalles = sec.detalle(item)
+  const fecha = item.fecha ? formatFecha(item.fecha) : null
+
+  return (
+    <article className={`card overflow-hidden border ${sec.border}`}>
+      <div className="flex items-center justify-between px-5 py-3 border-b border-ray-border/40">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Último ingreso</p>
+        {fecha && (
+          <p className="text-[10px] tabular-nums text-slate-500">{fecha}</p>
+        )}
+      </div>
+      <div className="flex items-start gap-3 px-5 py-3.5">
+        <div className={`mt-0.5 shrink-0 h-2 w-2 rounded-full ${sec.dot}`} />
+        <div className="min-w-0 flex-1">
+          <p className={`text-sm font-semibold ${sec.color}`}>{sec.label}</p>
+          {detalles.length > 0 && (
+            <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5">
+              {detalles.map((d, i) => (
+                <span key={i} className="text-xs text-slate-400 tabular-nums">{d}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </article>
   )
 }
 

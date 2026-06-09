@@ -1,155 +1,460 @@
-import { AlertTriangle, Calendar, Download, FileSpreadsheet, Trash2, Upload } from 'lucide-react'
-import { useRef } from 'react'
-import { calcularIndicadores } from '../lib/calculos.js'
-import { exportarWorkbook, importarWorkbook } from '../lib/excel.js'
-import { formatCLP, formatKilos, formatMes } from '../lib/formato.js'
+import { Calendar, ChevronDown, Pencil, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { formatCLP, formatFecha, formatKilos, formatMes, formatReales, formatearInputNumero, formatearNumeroParaInput } from '../lib/formato.js'
+import { parseNumeroFlexible } from '../lib/formato.js'
 
-export default function Historial({ estado }) {
-  const { state, setState, mesActivo, mesesOrdenados, setMesActivo, eliminarMes } = estado
-  const fileInputRef = useRef(null)
+const SECCIONES = [
+  { key: 'compras_bruto',                   label: 'Compras de Bruto',          accent: 'blue'    },
+  { key: 'pagos',                            label: 'Pagos Realizados',           accent: 'emerald' },
+  { key: 'servicios_completados',            label: 'Servicios de Fabricación',   accent: 'purple'  },
+  { key: 'pagos_aduana',                     label: 'Pagos a Aduana',             accent: 'orange'  },
+  { key: 'banos_completados',               label: 'Baños Procesados',            accent: 'cyan'    },
+  { key: 'llegadas_mercaderia_por_bloque',  label: 'Kilos Llegados',              accent: 'yellow'  },
+]
 
-  const handleEliminar = (key) => {
-    if (mesesOrdenados.length <= 1) {
-      alert('No puedes eliminar el último mes guardado.')
-      return
-    }
-    if (confirm(`¿Eliminar el mes ${formatMes(key)}? Esta acción no se puede deshacer.`)) {
-      eliminarMes(key)
-    }
-  }
+const AC = {
+  blue:    { border: 'border-l-blue-500',    dot: 'bg-blue-500',    head: 'text-blue-400',    badge: 'bg-blue-500/10 text-blue-300'     },
+  emerald: { border: 'border-l-emerald-500', dot: 'bg-emerald-500', head: 'text-emerald-400', badge: 'bg-emerald-500/10 text-emerald-300'},
+  purple:  { border: 'border-l-purple-500',  dot: 'bg-purple-500',  head: 'text-purple-400',  badge: 'bg-purple-500/10 text-purple-300'  },
+  orange:  { border: 'border-l-orange-500',  dot: 'bg-orange-500',  head: 'text-orange-400',  badge: 'bg-orange-500/10 text-orange-300'  },
+  cyan:    { border: 'border-l-cyan-500',    dot: 'bg-cyan-500',    head: 'text-cyan-400',    badge: 'bg-cyan-500/10 text-cyan-300'      },
+  yellow:  { border: 'border-l-yellow-500',  dot: 'bg-yellow-500',  head: 'text-yellow-400',  badge: 'bg-yellow-500/10 text-yellow-300'  },
+}
 
-  const handleExport = (key) => exportarWorkbook(state, key)
-  const handleExportAll = () => exportarWorkbook(state, null)
+/* Campos editables por categoría */
+const EDIT_FIELDS = {
+  compras_bruto: [
+    { key: 'fecha',        label: 'Fecha',      type: 'date'   },
+    { key: 'detalle',      label: 'Proveedor',  type: 'text'   },
+    { key: 'kilos',        label: 'Kilos',      type: 'number', prefix: 'kg' },
+    { key: 'total_reales', label: 'Total R$',   type: 'number', prefix: 'R$' },
+  ],
+  pagos: [
+    { key: 'fecha',    label: 'Fecha',       type: 'date'   },
+    { key: 'reales',   label: 'R$ pagados',  type: 'number', prefix: 'R$' },
+    { key: 'chilenos', label: 'CLP pagados', type: 'number', prefix: '$'  },
+  ],
+  servicios_completados: [
+    { key: 'fecha',        label: 'Fecha',    type: 'date'   },
+    { key: 'detalle',      label: 'Detalle',  type: 'text'   },
+    { key: 'total_reales', label: 'Total R$', type: 'number', prefix: 'R$' },
+  ],
+  pagos_aduana: [
+    { key: 'fecha',     label: 'Fecha',     type: 'date'   },
+    { key: 'kilos',     label: 'Kilos',     type: 'number', prefix: 'kg' },
+    { key: 'total_clp', label: 'Total CLP', type: 'number', prefix: '$'  },
+  ],
+  banos_completados: [
+    { key: 'fecha',         label: 'Fecha',           type: 'date'             },
+    { key: 'plata_kilos',   label: 'Plata — Kilos',   type: 'number', prefix: 'kg' },
+    { key: 'plata_reales',  label: 'Plata — R$',      type: 'number', prefix: 'R$' },
+    { key: 'oro_kilos',     label: 'Oro — Kilos',     type: 'number', prefix: 'kg' },
+    { key: 'oro_reales',    label: 'Oro — R$',        type: 'number', prefix: 'R$' },
+  ],
+  llegadas_mercaderia_por_bloque: [
+    { key: 'fecha',   label: 'Fecha',  type: 'date'   },
+    { key: 'MICRO',   label: 'MICRO',  type: 'number', prefix: 'kg' },
+    { key: 'CADENA',  label: 'CADENA', type: 'number', prefix: 'kg' },
+    { key: 'ORO GF',  label: 'ORO GF', type: 'number', prefix: 'kg' },
+  ],
+}
 
-  const handleImportClick = () => fileInputRef.current?.click()
-
-  const handleImportFile = async (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    try {
-      const nuevoState = await importarWorkbook(file, state)
-      setState(nuevoState)
-      alert('Importación completada.')
-    } catch (err) {
-      console.error(err)
-      alert(`Error al importar: ${err.message}`)
-    } finally {
-      e.target.value = ''
-    }
-  }
-
+/* ── Formulario de edición inline ── */
+function EditForm({ skey, form, onChange, onConfirm, onUndo }) {
+  const fields = EDIT_FIELDS[skey] || []
   return (
-    <div className="space-y-4">
-      <section className="card p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-sm font-semibold text-gray-900">Importar / Exportar</h2>
-            <p className="text-xs text-gray-500">Excel (.xlsx) compatible con el libro original</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={handleExportAll} className="btn-primary">
-              <FileSpreadsheet size={16} aria-hidden /> Exportar todos los meses
-            </button>
-            <button type="button" onClick={handleImportClick} className="btn-secondary">
-              <Upload size={16} aria-hidden /> Importar Excel
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={handleImportFile}
-              className="hidden"
-            />
-          </div>
-        </div>
-      </section>
-
-      {mesesOrdenados.length === 0 ? (
-        <section className="card p-8 text-center">
-          <AlertTriangle className="mx-auto mb-3 text-amber-500" size={28} />
-          <p className="text-sm text-gray-500">Sin meses guardados.</p>
-        </section>
-      ) : (
-        <ul className="grid gap-3 sm:grid-cols-2">
-          {[...mesesOrdenados].reverse().map((key) => {
-            const ind = calcularIndicadores(state.meses[key])
-            const activo = key === mesActivo
-            const pos = ind.indicadorFabricacion >= 0
-            return (
-              <li
-                key={key}
-                className={`card relative p-4 ${activo ? 'ring-2 ring-brand-500' : ''}`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setMesActivo(key)}
-                    className="flex flex-1 items-start gap-3 text-left"
-                  >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-                      <Calendar size={18} />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-gray-900">{formatMes(key)}</p>
-                      <p className="text-xs text-gray-500">
-                        {activo ? 'Mes activo' : 'Tocar para seleccionar'}
-                      </p>
-                    </div>
-                  </button>
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      onClick={() => handleExport(key)}
-                      className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-                      aria-label={`Exportar ${formatMes(key)}`}
-                      title="Exportar este mes"
-                    >
-                      <Download size={16} />
+    <div className="rounded-xl border border-ray-cyan/20 bg-ray-cyan-dim/10 p-3 space-y-3">
+      <div className="grid gap-2 sm:grid-cols-2">
+        {fields.map((f) => (
+          <label key={f.key} className={`block ${f.type === 'date' ? 'sm:col-span-2' : ''}`}>
+            <span className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{f.label}</span>
+            {f.type === 'date' ? (
+              <div className="relative mt-1">
+                <Calendar size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ray-cyan" />
+                <input
+                  type="date"
+                  value={form[f.key] || ''}
+                  onChange={(e) => onChange(f.key, e.target.value)}
+                  className="input pl-9 font-semibold tracking-wide text-sm"
+                />
+              </div>
+            ) : f.type === 'tipo' ? (
+              <div className="mt-1 grid grid-cols-2 gap-2">
+                {[{ val: 'plata', label: 'Plata' }, { val: 'oro', label: 'Oro' }].map((opt) => {
+                  const active = (form[f.key] || 'plata') === opt.val
+                  const isOro = opt.val === 'oro'
+                  return (
+                    <button key={opt.val} type="button" onClick={() => onChange(f.key, opt.val)}
+                      className={`rounded-lg border px-2 py-2 text-sm font-semibold transition ${
+                        active
+                          ? (isOro ? 'bg-amber-500/20 border-amber-400 text-amber-200' : 'bg-slate-400/20 border-slate-300 text-white')
+                          : 'border-ray-border text-slate-500'
+                      }`}>
+                      {opt.label}
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => handleEliminar(key)}
-                      className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-500"
-                      aria-label={`Eliminar ${formatMes(key)}`}
-                      title="Eliminar mes"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-
-                <dl className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                  <KPI label="Costo / kg" value={formatCLP(ind.costoTotalPorKilo)} />
-                  <KPI label="Kilos totales" value={formatKilos(ind.kilos.total)} />
-                  <KPI
-                    label="Indicador"
-                    value={(pos ? '+' : '') + formatCLP(ind.indicadorFabricacion)}
-                    color={pos ? 'text-emerald-600' : 'text-red-600'}
-                  />
-                  <KPI label="TC pond." value={ind.tipoCambio ? ind.tipoCambio.toFixed(2) : '—'} />
-                </dl>
-              </li>
-            )
-          })}
-        </ul>
-      )}
-
-      <section className="card p-4 text-xs text-gray-500">
-        <p>
-          <strong>Almacenamiento:</strong> los datos se guardan automáticamente en este
-          dispositivo (localStorage). Limpiar el navegador los borra. Para respaldo,
-          usa &ldquo;Exportar todos los meses&rdquo;.
-        </p>
-      </section>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="relative mt-1">
+                {f.prefix && (
+                  <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-ray-cyan select-none">
+                    {f.prefix}
+                  </span>
+                )}
+                <input
+                  type="text"
+                  inputMode={f.type === 'number' ? 'decimal' : undefined}
+                  value={form[f.key] ?? ''}
+                  onChange={(e) => onChange(f.key, f.type === 'number' ? formatearInputNumero(e.target.value) : e.target.value)}
+                  className={`input text-sm ${f.prefix ? 'pl-9' : ''}`}
+                />
+              </div>
+            )}
+          </label>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <button type="button" onClick={onConfirm}
+          className="flex-1 rounded-xl bg-emerald-500 py-2.5 text-sm font-semibold text-white hover:bg-emerald-400 transition">
+          ✓ Confirmar
+        </button>
+        <button type="button" onClick={onUndo}
+          className="flex-1 rounded-xl bg-ray-border py-2.5 text-sm font-semibold text-slate-300 hover:bg-slate-700 transition">
+          ✕ Deshacer
+        </button>
+      </div>
     </div>
   )
 }
 
-function KPI({ label, value, color }) {
+/* ── Chip de fecha ── */
+function DateChip({ fecha }) {
+  if (!fecha) return null
   return (
-    <div>
-      <dt className="text-gray-500">{label}</dt>
-      <dd className={`font-semibold ${color || 'text-gray-900'}`}>{value}</dd>
+    <span className="shrink-0 rounded-md bg-ray-border px-2 py-0.5 font-mono text-[10px] text-slate-400">
+      {formatFecha(fecha)}
+    </span>
+  )
+}
+
+/* ── Botones de acción ── */
+function RowActions({ onEdit, onDelete }) {
+  return (
+    <div className="flex shrink-0 items-center gap-0.5">
+      <button type="button" onClick={onEdit}
+        className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-[10px] font-semibold text-slate-500 hover:bg-ray-border hover:text-ray-cyan transition-colors">
+        <Pencil size={10} /> Editar
+      </button>
+      <button type="button" onClick={onDelete}
+        className="rounded-lg p-1.5 text-slate-600 hover:bg-red-900/20 hover:text-red-400 transition-colors"
+        aria-label="Eliminar">
+        <Trash2 size={13} />
+      </button>
+    </div>
+  )
+}
+
+/* ── Contenido de cada fila (sin botones) ── */
+function RowContent({ skey, r }) {
+  if (skey === 'compras_bruto') {
+    const rPorKg = r.kilos > 0 && r.total_reales > 0 ? r.total_reales / r.kilos : 0
+    return (
+      <div className="flex-1 min-w-0 px-1 space-y-0.5">
+        <div className="flex items-center gap-2 flex-wrap">
+          <DateChip fecha={r.fecha} />
+          {r.total_reales > 0 && <span className="ml-auto font-semibold text-sm text-blue-300">{formatReales(r.total_reales)}</span>}
+        </div>
+        <div className="flex items-center gap-2 pl-0.5">
+          <span className="text-sm text-slate-200 break-words">{r.detalle || '—'}</span>
+          <div className="ml-auto shrink-0 flex items-center gap-1.5">
+            {r.kilos > 0 && <span className="text-xs text-slate-500">{formatKilos(r.kilos)}</span>}
+            {rPorKg > 0 && (
+              <span className="rounded-md bg-ray-border px-1.5 py-0.5 text-[10px] font-semibold text-slate-400 whitespace-nowrap">
+                {new Intl.NumberFormat('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(rPorKg)} R$/kg
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+  if (skey === 'pagos') {
+    const tc = r.reales ? (r.chilenos / r.reales).toFixed(2) : null
+    return (
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-1 px-1">
+        <DateChip fecha={r.fecha} />
+        {r.reales > 0 && <span className="font-medium text-sm text-emerald-300">{formatReales(r.reales)}</span>}
+        {r.reales > 0 && r.chilenos > 0 && <span className="text-slate-600 text-xs">→</span>}
+        {r.chilenos > 0 && <span className="font-medium text-sm text-white">{formatCLP(r.chilenos)}</span>}
+        {tc && <span className="ml-auto text-xs text-slate-500">TC {tc}</span>}
+      </div>
+    )
+  }
+  if (skey === 'servicios_completados') return (
+    <div className="flex-1 min-w-0 px-1 space-y-0.5">
+      <div className="flex items-center gap-2 flex-wrap">
+        <DateChip fecha={r.fecha} />
+        {r.total_reales > 0 && <span className="ml-auto font-semibold text-sm text-purple-300">{formatReales(r.total_reales)}</span>}
+      </div>
+      <div className="pl-0.5">
+        <span className="text-sm text-slate-200 break-words">{r.detalle || '—'}</span>
+      </div>
+    </div>
+  )
+  if (skey === 'pagos_aduana') return (
+    <div className="flex-1 min-w-0 px-1 space-y-0.5">
+      <div className="flex items-center gap-2 flex-wrap">
+        <DateChip fecha={r.fecha} />
+        {r.total_clp > 0 && <span className="ml-auto font-semibold text-sm text-orange-300">{formatCLP(r.total_clp)}</span>}
+      </div>
+      {r.kilos > 0 && (
+        <div className="pl-0.5">
+          <span className="text-xs text-slate-500">{formatKilos(r.kilos)}</span>
+        </div>
+      )}
+    </div>
+  )
+  if (skey === 'banos_completados') {
+    // Normalizar formato antiguo al nuevo esquema para mostrar igual
+    const esNuevo = r.plata_kilos != null || r.plata_reales != null
+    const plata_kilos   = esNuevo ? r.plata_kilos   : (r.tipo !== 'oro' ? r.kilos     : 0)
+    const plata_reales  = esNuevo ? r.plata_reales  : (r.tipo !== 'oro' ? r.total_clp : 0)
+    const oro_kilos     = esNuevo ? r.oro_kilos     : (r.tipo === 'oro' ? r.kilos     : 0)
+    const oro_reales    = esNuevo ? r.oro_reales    : (r.tipo === 'oro' ? r.total_clp : 0)
+    return (
+      <div className="flex-1 min-w-0 px-1 space-y-1.5">
+        <DateChip fecha={r.fecha} />
+        <div className="flex gap-2">
+          {(plata_kilos > 0 || plata_reales > 0) && (
+            <div className="flex-1 rounded-lg bg-slate-400/10 border border-slate-400/20 px-2 py-1.5">
+              <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-0.5">PLATA</div>
+              {plata_kilos > 0 && <div className="text-xs text-slate-300">{formatKilos(plata_kilos)}</div>}
+              {plata_reales > 0 && <div className="text-sm font-semibold text-cyan-300">{formatReales(plata_reales)}</div>}
+            </div>
+          )}
+          {(oro_kilos > 0 || oro_reales > 0) && (
+            <div className="flex-1 rounded-lg bg-amber-500/10 border border-amber-500/20 px-2 py-1.5">
+              <div className="text-[10px] font-bold uppercase tracking-wide text-amber-500 mb-0.5">ORO</div>
+              {oro_kilos > 0 && <div className="text-xs text-slate-300">{formatKilos(oro_kilos)}</div>}
+              {oro_reales > 0 && <div className="text-sm font-semibold text-amber-300">{formatReales(oro_reales)}</div>}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+  if (skey === 'llegadas_mercaderia_por_bloque') {
+    const total = (r.MICRO || 0) + (r.CADENA || 0) + (r['ORO GF'] || 0)
+    const cats = [['MICRO', r.MICRO, 'text-blue-400'], ['CADENA', r.CADENA, 'text-emerald-400'], ['ORO GF', r['ORO GF'], 'text-amber-400']].filter(([, val]) => (val || 0) > 0)
+    return (
+      <div className="flex-1 min-w-0 px-1 space-y-1.5">
+        <div className="flex items-center gap-2">
+          <DateChip fecha={r.fecha} />
+          {total > 0 && <span className="ml-auto text-xs text-slate-400">{formatKilos(total)} bruto</span>}
+        </div>
+        {cats.length > 0 && (
+          <div className={`grid gap-2 ${cats.length === 3 ? 'grid-cols-3' : cats.length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            {cats.map(([cat, val, color]) => (
+              <div key={cat} className="rounded-lg bg-ray-border/60 px-1.5 py-1.5 text-center">
+                <div className="text-[9px] uppercase tracking-wide text-slate-500 mb-0.5">{cat}</div>
+                <div className={`text-xs font-semibold whitespace-nowrap ${color}`}>{formatKilos(val)}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+  return null
+}
+
+/* ── Sección por categoría (colapsable) ── */
+function SeccionCategoria({ seccion, entradas, editing, editForm, onEditStart, onEditChange, onEditConfirm, onEditUndo, onDelete }) {
+  const { key, label, accent } = seccion
+  const ac = AC[accent]
+  // Ordenar por fecha ascendente; guardar índice original para edición/borrado
+  const entradasConIdx = entradas.map((r, idx) => ({ r, idx }))
+  entradasConIdx.sort((a, b) => (a.r.fecha || '') < (b.r.fecha || '') ? -1 : (a.r.fecha || '') > (b.r.fecha || '') ? 1 : 0)
+  const count = entradas.length
+  const [open, setOpen] = useState(false)
+
+  return (
+    <article className={`card overflow-hidden border-l-4 ${ac.border} p-0`}>
+      <button
+        type="button"
+        onClick={() => count > 0 && setOpen((o) => !o)}
+        className={`flex w-full items-center justify-between px-4 py-3 text-left transition-colors ${count > 0 ? 'hover:bg-ray-border/30' : 'cursor-default'}`}
+      >
+        <div className="flex items-center gap-2">
+          <span className={`h-2 w-2 rounded-full ${ac.dot}`} />
+          <h3 className={`text-xs font-bold uppercase tracking-wide ${ac.head}`}>{label}</h3>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${count > 0 ? ac.badge : 'bg-ray-border text-slate-600'}`}>
+            {count === 0 ? 'Sin registros' : `${count} ${count === 1 ? 'entrada' : 'entradas'}`}
+          </span>
+          {count > 0 && (
+            <ChevronDown size={14} className={`shrink-0 text-slate-500 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+          )}
+        </div>
+      </button>
+
+      {open && count > 0 && (
+        <div className="space-y-1 px-2 pb-2 border-t border-ray-border/50 pt-1">
+          {entradasConIdx.map(({ r, idx }) => {
+            const isEditing = editing?.key === key && editing?.idx === idx
+            if (isEditing) {
+              return (
+                <div key={idx} className="px-1 py-1">
+                  <EditForm
+                    skey={key}
+                    form={editForm}
+                    onChange={onEditChange}
+                    onConfirm={onEditConfirm}
+                    onUndo={onEditUndo}
+                  />
+                </div>
+              )
+            }
+            return (
+              <div key={idx} className="flex items-start gap-1 rounded-xl py-1.5 hover:bg-ray-border/30 transition-colors">
+                <RowContent skey={key} r={r} />
+                <RowActions
+                  onEdit={() => onEditStart(key, idx, r)}
+                  onDelete={() => onDelete(key, idx, r)}
+                />
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </article>
+  )
+}
+
+/* ── Selector de mes ── */
+function MesSelector({ mesesOrdenados, mesActivo, setMesActivo }) {
+  if (mesesOrdenados.length <= 1) return null
+  return (
+    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+      {[...mesesOrdenados].reverse().map((key) => (
+        <button key={key} type="button" onClick={() => setMesActivo(key)}
+          className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
+            key === mesActivo
+              ? 'bg-ray-cyan text-ray-bg'
+              : 'bg-ray-surface border border-ray-border text-slate-400 hover:text-white'
+          }`}>
+          {formatMes(key)}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/* ── Componente principal ── */
+export default function Historial({ estado }) {
+  const { mesActivo, mesData, mesesOrdenados, setMesActivo } = estado
+  const [editing, setEditing] = useState(null) // { key, idx }
+  const [editForm, setEditForm] = useState({})
+  const [toast, setToast] = useState(null)
+
+  const showToast = (msg) => {
+    setToast(msg)
+    setTimeout(() => setToast(null), 2500)
+  }
+
+  const handleEditStart = (key, idx, r) => {
+    if (!confirm('¿Confirmas que quieres editar esta entrada?')) return
+    const form = {}
+    const fields = EDIT_FIELDS[key] || []
+    // Para baños en formato antiguo, migrar al nuevo esquema combinado
+    const esAntiguo = key === 'banos_completados' && r.plata_kilos == null && r.plata_reales == null
+    const rNorm = esAntiguo && key === 'banos_completados'
+      ? {
+          fecha: r.fecha,
+          plata_kilos:  r.tipo !== 'oro' ? r.kilos     : 0,
+          plata_reales: r.tipo !== 'oro' ? r.total_clp : 0,
+          oro_kilos:    r.tipo === 'oro' ? r.kilos     : 0,
+          oro_reales:   r.tipo === 'oro' ? r.total_clp : 0,
+        }
+      : r
+    fields.forEach((f) => {
+      if (f.type === 'number') form[f.key] = formatearNumeroParaInput(rNorm[f.key])
+      else form[f.key] = rNorm[f.key] !== undefined ? String(rNorm[f.key]) : ''
+    })
+    setEditing({ key, idx })
+    setEditForm(form)
+  }
+
+  const handleEditChange = (fieldKey, value) => {
+    setEditForm((prev) => ({ ...prev, [fieldKey]: value }))
+  }
+
+  const handleEditConfirm = () => {
+    if (!editing) return
+    const { key, idx } = editing
+    const fields = EDIT_FIELDS[key] || []
+    const arr = (mesData[key] || []).map((r, i) => {
+      if (i !== idx) return r
+      const updated = { ...r }
+      // Para baños en formato antiguo, eliminar claves obsoletas al actualizar
+      if (key === 'banos_completados') {
+        delete updated.tipo; delete updated.kilos; delete updated.total_clp
+      }
+      fields.forEach((f) => {
+        updated[f.key] = f.type === 'number'
+          ? parseNumeroFlexible(String(editForm[f.key] ?? ''))
+          : editForm[f.key]
+      })
+      return updated
+    })
+    estado.updateMes({ [key]: arr })
+    setEditing(null)
+    setEditForm({})
+    showToast('✓ Guardado — si cambió la fecha, la entrada se reordenó en la lista')
+  }
+
+  const handleEditUndo = () => {
+    setEditing(null)
+    setEditForm({})
+  }
+
+  const handleDelete = (key, idx, r) => {
+    const label = r?.detalle || r?.fecha || 'esta entrada'
+    if (!confirm(`¿Eliminar "${label}"? Esta acción no se puede deshacer.`)) return
+    const next = (mesData[key] || []).filter((_, i) => i !== idx)
+    estado.updateMes({ [key]: next })
+  }
+
+  return (
+    <div className="space-y-4">
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-lg whitespace-nowrap">
+          {toast}
+        </div>
+      )}
+      <MesSelector mesesOrdenados={mesesOrdenados} mesActivo={mesActivo} setMesActivo={setMesActivo} />
+
+      <div className="space-y-3">
+        <h2 className="px-1 text-xs font-bold uppercase tracking-widest text-slate-500">
+          Registros — {formatMes(mesActivo)}
+        </h2>
+        {SECCIONES.map((sec) => (
+          <SeccionCategoria
+            key={sec.key}
+            seccion={sec}
+            entradas={mesData[sec.key] || []}
+            editing={editing}
+            editForm={editForm}
+            onEditStart={handleEditStart}
+            onEditChange={handleEditChange}
+            onEditConfirm={handleEditConfirm}
+            onEditUndo={handleEditUndo}
+            onDelete={handleDelete}
+          />
+        ))}
+      </div>
     </div>
   )
 }

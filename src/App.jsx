@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Coins, Download, Moon, Sun } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Coins, Download, Moon, Plus, Sun } from 'lucide-react'
 import TabBar from './components/TabBar.jsx'
 import MesSelector from './components/MesSelector.jsx'
 import Ingreso from './components/Ingreso.jsx'
@@ -38,6 +38,90 @@ function exportarCSV(state, mesActivo) {
   a.download = `costos-${mesActivo}.csv`
   a.click()
   URL.revokeObjectURL(url)
+}
+
+function NavMes({ estado }) {
+  const { mesActivo, mesesOrdenados, setMesActivo, crearMes } = estado
+  const [creando, setCreando] = useState(false)
+  const inputRef = useRef(null)
+
+  const idx  = mesesOrdenados.indexOf(mesActivo)
+  const prev = idx > 0 ? mesesOrdenados[idx - 1] : null
+  const next = idx < mesesOrdenados.length - 1 ? mesesOrdenados[idx + 1] : null
+
+  // Sugiere el mes siguiente al último registrado
+  const sugerido = (() => {
+    if (!mesesOrdenados.length) return ''
+    const last = mesesOrdenados[mesesOrdenados.length - 1]
+    const [y, m] = last.split('-').map(Number)
+    const d = new Date(y, m, 1)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  })()
+
+  const confirmar = (val) => {
+    if (!val || !/^\d{4}-\d{2}$/.test(val)) return
+    crearMes(val)
+    setMesActivo(val)
+    setCreando(false)
+  }
+
+  useEffect(() => { if (creando) inputRef.current?.focus() }, [creando])
+
+  const mLabel = (k) => {
+    const [y, m] = k.split('-').map(Number)
+    return new Intl.DateTimeFormat('es-CL', { month: 'short', year: '2-digit' }).format(new Date(y, m - 1, 1))
+  }
+
+  return (
+    <div className="border-t border-ray-border/40 dark:border-ray-border">
+      <div className="mx-auto flex max-w-5xl items-center gap-1 px-3 py-1.5 md:px-6">
+        {/* Prev */}
+        <button disabled={!prev} onClick={() => prev && setMesActivo(prev)}
+          className="rounded-lg p-1.5 text-slate-500 hover:bg-ray-border/30 disabled:opacity-20 transition">
+          ‹
+        </button>
+
+        {/* Chips de meses */}
+        <div className="flex flex-1 gap-1 overflow-x-auto scrollbar-none">
+          {mesesOrdenados.map((k) => (
+            <button key={k} onClick={() => setMesActivo(k)}
+              className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold transition-colors ${
+                k === mesActivo
+                  ? 'bg-ray-cyan text-ray-bg'
+                  : 'text-slate-500 hover:text-white hover:bg-ray-border/40'
+              }`}>
+              {mLabel(k)}
+            </button>
+          ))}
+        </div>
+
+        {/* Next */}
+        <button disabled={!next} onClick={() => next && setMesActivo(next)}
+          className="rounded-lg p-1.5 text-slate-500 hover:bg-ray-border/30 disabled:opacity-20 transition">
+          ›
+        </button>
+
+        {/* Nuevo mes */}
+        {creando ? (
+          <div className="flex items-center gap-1 ml-1">
+            <input
+              ref={inputRef}
+              type="month"
+              defaultValue={sugerido}
+              onKeyDown={(e) => { if (e.key === 'Enter') confirmar(e.target.value); if (e.key === 'Escape') setCreando(false) }}
+              onBlur={(e) => confirmar(e.target.value)}
+              className="rounded-lg border border-ray-border bg-ray-surface px-2 py-1 text-xs text-white focus:outline-none focus:border-ray-cyan w-32"
+            />
+          </div>
+        ) : (
+          <button onClick={() => setCreando(true)} title="Nuevo mes"
+            className="ml-1 shrink-0 rounded-lg p-1.5 text-slate-500 hover:text-ray-cyan hover:bg-ray-border/30 transition">
+            <Plus size={14} />
+          </button>
+        )}
+      </div>
+    </div>
+  )
 }
 
 function IndicadorBar({ indicadores }) {
@@ -140,6 +224,7 @@ export default function App() {
           </button>
         </div>
         <TabBar activo={tab} onChange={handleTabChange} />
+        <NavMes estado={estado} />
         <IndicadorBar indicadores={estado.indicadores} />
       </header>
 

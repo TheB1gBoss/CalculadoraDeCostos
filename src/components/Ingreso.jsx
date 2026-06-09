@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Banknote, Calendar, DollarSign, Droplet, Package, PackageCheck, Plus, ShoppingCart, Wrench } from 'lucide-react'
 import Accordion from './Accordion.jsx'
 import PreciosPonderados from './PreciosPonderados.jsx'
@@ -12,7 +12,18 @@ const today = () => {
 const CATS = ['MICRO', 'CADENA', 'ORO GF']
 
 export default function Ingreso({ estado }) {
-  const { mesData, updateMes, setPreciosPonderados } = estado
+  const { mesData, updateMes, setPreciosPonderados, state } = estado
+
+  // Extrae proveedores únicos de todos los meses
+  const proveedoresHistoricos = useMemo(() => {
+    const nombres = new Set()
+    Object.values(state?.meses || {}).forEach(mes => {
+      (mes.compras_bruto || []).forEach(c => {
+        if (c.detalle?.trim()) nombres.add(c.detalle.trim())
+      })
+    })
+    return [...nombres].sort()
+  }, [state?.meses])
 
   const addRow = (key, row) =>
     updateMes({ [key]: [...(mesData[key] || []), { ...row, _ts: Date.now() }] })
@@ -33,7 +44,7 @@ export default function Ingreso({ estado }) {
         <QuickAdd
           fields={[
             { key: 'fecha',        label: 'Fecha',     type: 'date',   default: today() },
-            { key: 'detalle',      label: 'Proveedor', type: 'text',   placeholder: 'Nombre del proveedor' },
+            { key: 'detalle',      label: 'Proveedor', type: 'text',   placeholder: 'Nombre del proveedor', suggestions: proveedoresHistoricos },
             { key: 'kilos',        label: 'Kilos',     type: 'number', placeholder: '0,000', prefix: 'kg' },
             { key: 'total_reales', label: 'Total R$',  type: 'number', placeholder: '0,00',  prefix: 'R$' },
           ]}
@@ -209,10 +220,45 @@ function UltimoIngreso({ mesData }) {
   )
 }
 
+/* ── ProveedorInput: texto con autocomplete de proveedores ── */
+function ProveedorInput({ value, placeholder, suggestions, onChange }) {
+  const [open, setOpen] = useState(false)
+  const filtered = value.length >= 1
+    ? suggestions.filter(s => s.toLowerCase().includes(value.toLowerCase()))
+    : suggestions
+  return (
+    <div className="relative">
+      <input
+        type="text"
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => { onChange(e.target.value); setOpen(true) }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        className="input"
+      />
+      {open && filtered.length > 0 && (
+        <ul className="absolute z-20 mt-1 w-full rounded-xl border border-ray-border bg-ray-surface shadow-xl max-h-48 overflow-y-auto">
+          {filtered.slice(0, 8).map(s => (
+            <li key={s}
+              onMouseDown={() => { onChange(s); setOpen(false) }}
+              className="px-3 py-2 text-sm text-slate-300 cursor-pointer hover:bg-ray-border/40 first:rounded-t-xl last:rounded-b-xl"
+            >
+              {s}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 /* ── QuickAdd: formulario de ingreso ─────────────────────── */
 function QuickAdd({ fields, onAdd }) {
   const init = () => Object.fromEntries(fields.map((f) => [f.key, f.default ?? '']))
   const [form, setForm] = useState(init)
+  const [error, setError] = useState(null)
+  const [pendiente, setPendiente] = useState(null)
 
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }))
 
@@ -220,9 +266,24 @@ function QuickAdd({ fields, onAdd }) {
     const parsed = Object.fromEntries(
       fields.map((f) => [f.key, f.type === 'number' ? parseNumeroFlexible(form[f.key]) : form[f.key]])
     )
-    onAdd(parsed)
+    const textoVacio = fields.filter(f => f.type === 'text').some(f => !parsed[f.key]?.trim())
+    const hayNumero  = fields.filter(f => f.type === 'number').some(f => (parsed[f.key] || 0) > 0)
+    if (textoVacio || (fields.some(f => f.type === 'number') && !hayNumero)) {
+      setError('Completá todos los campos requeridos.')
+      return
+    }
+    setError(null)
+    setPendiente(parsed)
+  }
+
+  const confirmar = () => {
+    if (!pendiente) return
+    onAdd(pendiente)
+    setPendiente(null)
     setForm({ ...init(), fecha: today() })
   }
+
+  const cancelar = () => setPendiente(null)
 
   return (
     <div className="space-y-3">
@@ -273,6 +334,14 @@ function QuickAdd({ fields, onAdd }) {
                   className="input pl-9"
                 />
               </div>
+            ) : f.suggestions?.length > 0 ? (
+              /* ── Texto con autocomplete ── */
+              <ProveedorInput
+                value={form[f.key]}
+                placeholder={f.placeholder}
+                suggestions={f.suggestions}
+                onChange={(v) => set(f.key, v)}
+              />
             ) : (
               /* ── Texto normal ── */
               <input
@@ -286,9 +355,30 @@ function QuickAdd({ fields, onAdd }) {
           </label>
         ))}
       </div>
-      <button type="button" onClick={handleAdd} className="btn-primary w-full">
-        <Plus size={16} /> Agregar
-      </button>
+      {error && <p className="text-xs text-red-400 font-medium">{error}</p>}
+      {!pendiente ? (
+        <button type="button" onClick={handleAdd} className="btn-primary w-full">
+          <Plus size={16} /> Agregar
+        </button>
+      ) : (
+        <div className="rounded-xl border border-ray-border/60 bg-ray-border/10 p-3 space-y-2">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Confirmar registro</p>
+          <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+            {fields.map(f => (
+              <span key={f.key} className="text-xs text-slate-300 tabular-nums">
+                <span className="text-slate-500">{f.label}: </span>
+                {f.type === 'number'
+                  ? (f.prefix === 'R$' ? `R$ ${pendiente[f.key]}` : f.prefix === '$' ? `$${pendiente[f.key].toLocaleString('es-CL')}` : `${pendiente[f.key]} kg`)
+                  : pendiente[f.key]}
+              </span>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <button type="button" onClick={confirmar} className="btn-primary flex-1 py-2">✓ Confirmar</button>
+            <button type="button" onClick={cancelar} className="flex-1 rounded-xl border border-ray-border/60 py-2 text-sm text-slate-400 hover:bg-ray-border/20 transition">✕ Cancelar</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -239,6 +239,49 @@ export default function Dashboard({ estado }) {
         />
       )}
 
+      {/* ── 4.5. Estado de pagos ── */}
+      {totalComprasR$ > 0 && (() => {
+        const totalPagadoR$ = (mesData.pagos || []).reduce((s, p) => s + (p.reales || 0), 0)
+        const saldoR$ = totalComprasR$ - totalPagadoR$
+        const saldoCLP = saldoR$ > 0 ? saldoR$ * tipoCambio : 0
+        const pctPagado = totalComprasR$ > 0 ? Math.min(totalPagadoR$ / totalComprasR$, 1) : 0
+        return (
+          <article className="card overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-ray-border/40">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Estado de pagos</p>
+              <span className={`text-[10px] font-bold tabular-nums ${saldoR$ <= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                {saldoR$ <= 0 ? '✓ Al día' : `${formatReales(saldoR$)} pendiente`}
+              </span>
+            </div>
+            <div className="px-5 py-4 border-b border-ray-border/40">
+              <div className="flex justify-between text-[10px] mb-2">
+                <span className="text-slate-500">Pagado</span>
+                <span className="font-bold text-slate-300 tabular-nums">{formatNumero(pctPagado * 100, 1)}%</span>
+              </div>
+              <div className="h-2 rounded-full bg-ray-border overflow-hidden">
+                <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${pctPagado * 100}%` }}/>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 divide-x divide-ray-border/40">
+              <div className="px-3 py-3 text-center">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-slate-600 mb-1">Comprado</p>
+                <p className="text-xs font-bold tabular-nums text-slate-300">{formatReales(totalComprasR$)}</p>
+              </div>
+              <div className="px-3 py-3 text-center">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-slate-600 mb-1">Pagado</p>
+                <p className="text-xs font-bold tabular-nums text-emerald-400">{formatReales(totalPagadoR$)}</p>
+              </div>
+              <div className="px-3 py-3 text-center">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-slate-600 mb-1">Saldo est. CLP</p>
+                <p className={`text-xs font-bold tabular-nums ${saldoR$ > 0 ? 'text-amber-400' : 'text-slate-600'}`}>
+                  {saldoR$ > 0 ? formatCLP(saldoCLP) : '—'}
+                </p>
+              </div>
+            </div>
+          </article>
+        )
+      })()}
+
       {/* ── 5. Costo por kg de metal (Plata + Oro fusionados) ── */}
       <article className="card overflow-hidden">
         <div className="px-5 py-4 border-b border-ray-border/40">
@@ -471,8 +514,32 @@ export default function Dashboard({ estado }) {
           <div className="px-5 py-4 border-b border-ray-border/40">
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Evolución histórica</p>
           </div>
+          {/* Gráfico evolución costo/kg */}
+          {historial.filter(h => h.ind.costoTotalPorKilo > 0).length >= 2 && (
+            <div className="px-4 pt-4 pb-3 border-b border-ray-border/40">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-3">Costo/kg por mes</p>
+              <div className="h-36">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={historial.filter(h => h.ind.costoTotalPorKilo > 0).map(({ key, ind }) => ({ mes: mesLabel(key), costo: ind.costoTotalPorKilo, key }))}
+                    margin={{ top: 4, right: 4, left: -14, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#152338"/>
+                    <XAxis dataKey="mes" tick={{ fontSize: 9, fill: '#475569' }} interval="preserveStartEnd"/>
+                    <YAxis tick={{ fontSize: 9, fill: '#475569' }} tickFormatter={(v) => formatCLP(v)} domain={['auto','auto']} width={72}/>
+                    <Tooltip
+                      contentStyle={{ borderRadius: 10, background: '#0b1628', border: '1px solid #152338', fontSize: 11, color: '#e2e8f0' }}
+                      formatter={(v) => [formatCLP(v), 'Costo/kg']}
+                    />
+                    <Line type="monotone" dataKey="costo" stroke="#34d399" strokeWidth={2}
+                      dot={{ r: 2.5, fill: '#34d399', strokeWidth: 0 }} activeDot={{ r: 4 }}/>
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
           <div className="overflow-x-auto">
-            <table className="w-full text-xs min-w-[340px]">
+            <table className="w-full text-xs min-w-[460px]">
               <thead>
                 <tr className="border-b border-ray-border/60 bg-ray-border/10">
                   <th className="text-left py-2.5 px-5 text-[9px] font-bold uppercase tracking-wider text-slate-600">Mes</th>
@@ -480,6 +547,7 @@ export default function Dashboard({ estado }) {
                   <th className="text-right py-2.5 px-4 text-[9px] font-bold uppercase tracking-wider text-slate-600 border-l border-ray-border/40">Costo/kg</th>
                   <th className="text-right py-2.5 px-4 text-[9px] font-bold uppercase tracking-wider text-slate-600 border-l border-ray-border/40">Kilos</th>
                   <th className="text-right py-2.5 px-5 text-[9px] font-bold uppercase tracking-wider text-slate-600 border-l border-ray-border/40">Indicador</th>
+                  <th className="text-right py-2.5 px-4 text-[9px] font-bold uppercase tracking-wider text-slate-600 border-l border-ray-border/40">Margen</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-ray-border/30">
@@ -496,6 +564,9 @@ export default function Dashboard({ estado }) {
                       <td className="py-3 px-4 text-right tabular-nums text-slate-300 border-l border-ray-border/30">{ind.kilos.total > 0 ? formatKilos(ind.kilos.total) : '—'}</td>
                       <td className={`py-3 px-5 text-right tabular-nums font-bold border-l border-ray-border/30 ${indPos ? 'text-emerald-400' : 'text-red-400'}`}>
                         {indPos ? '+' : ''}{formatCLP(ind.indicadorFabricacion)}
+                      </td>
+                      <td className={`py-3 px-4 text-right tabular-nums font-semibold border-l border-ray-border/30 ${ind.costoTotalKilos > 0 && ind.indicadorFabricacion/ind.costoTotalKilos >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {ind.costoTotalKilos > 0 ? formatPct(ind.indicadorFabricacion / ind.costoTotalKilos) : '—'}
                       </td>
                     </tr>
                   )

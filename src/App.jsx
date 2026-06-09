@@ -224,7 +224,6 @@ export default function App() {
           </button>
         </div>
         <TabBar activo={tab} onChange={handleTabChange} />
-        <NavMes estado={estado} />
         <IndicadorBar indicadores={estado.indicadores} />
       </header>
 

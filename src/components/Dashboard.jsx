@@ -239,49 +239,6 @@ export default function Dashboard({ estado }) {
         />
       )}
 
-      {/* ── 4.5. Estado de pagos ── */}
-      {totalComprasR$ > 0 && (() => {
-        const totalPagadoR$ = (mesData.pagos || []).reduce((s, p) => s + (p.reales || 0), 0)
-        const saldoR$ = totalComprasR$ - totalPagadoR$
-        const saldoCLP = saldoR$ > 0 ? saldoR$ * tipoCambio : 0
-        const pctPagado = totalComprasR$ > 0 ? Math.min(totalPagadoR$ / totalComprasR$, 1) : 0
-        return (
-          <article className="card overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-ray-border/40">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Estado de pagos</p>
-              <span className={`text-[10px] font-bold tabular-nums ${saldoR$ <= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                {saldoR$ <= 0 ? '✓ Al día' : `${formatReales(saldoR$)} pendiente`}
-              </span>
-            </div>
-            <div className="px-5 py-4 border-b border-ray-border/40">
-              <div className="flex justify-between text-[10px] mb-2">
-                <span className="text-slate-500">Pagado</span>
-                <span className="font-bold text-slate-300 tabular-nums">{formatNumero(pctPagado * 100, 1)}%</span>
-              </div>
-              <div className="h-2 rounded-full bg-ray-border overflow-hidden">
-                <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${pctPagado * 100}%` }}/>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 divide-x divide-ray-border/40">
-              <div className="px-3 py-3 text-center">
-                <p className="text-[9px] font-bold uppercase tracking-wider text-slate-600 mb-1">Comprado</p>
-                <p className="text-xs font-bold tabular-nums text-slate-300">{formatReales(totalComprasR$)}</p>
-              </div>
-              <div className="px-3 py-3 text-center">
-                <p className="text-[9px] font-bold uppercase tracking-wider text-slate-600 mb-1">Pagado</p>
-                <p className="text-xs font-bold tabular-nums text-emerald-400">{formatReales(totalPagadoR$)}</p>
-              </div>
-              <div className="px-3 py-3 text-center">
-                <p className="text-[9px] font-bold uppercase tracking-wider text-slate-600 mb-1">Saldo est. CLP</p>
-                <p className={`text-xs font-bold tabular-nums ${saldoR$ > 0 ? 'text-amber-400' : 'text-slate-600'}`}>
-                  {saldoR$ > 0 ? formatCLP(saldoCLP) : '—'}
-                </p>
-              </div>
-            </div>
-          </article>
-        )
-      })()}
-
       {/* ── 5. Costo por kg de metal (Plata + Oro fusionados) ── */}
       <article className="card overflow-hidden">
         <div className="px-5 py-4 border-b border-ray-border/40">

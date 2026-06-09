@@ -18,8 +18,16 @@ export default function Historial({ estado }) {
     }
   }
 
-  const handleExport = (key) => exportarWorkbook(state, key)
-  const handleExportAll = () => exportarWorkbook(state, null)
+  const exportar = async (key) => {
+    try {
+      await exportarWorkbook(state, key)
+    } catch (err) {
+      console.error(err)
+      alert(`Error al exportar: ${err.message}`)
+    }
+  }
+  const handleExport = (key) => exportar(key)
+  const handleExportAll = () => exportar(null)
 
   const handleImportClick = () => fileInputRef.current?.click()
 

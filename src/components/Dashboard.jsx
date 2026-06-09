@@ -13,12 +13,18 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from 'recharts'
-import { formatCLP, formatKilos, formatNumero } from '../lib/formato.js'
+import { formatCLP, formatKilos, formatNumero, formatPct } from '../lib/formato.js'
 
 const COLORS = {
   MICRO: '#0066cc',
   CADENA: '#10b981',
   'ORO GF': '#f59e0b',
+}
+
+const COSTO_COLORS = {
+  bruto: '#0066cc',
+  bano: '#f59e0b',
+  aduana: '#6366f1',
 }
 
 export default function Dashboard({ estado }) {
@@ -54,6 +60,8 @@ export default function Dashboard({ estado }) {
   const indColor = indPositivo
     ? 'text-emerald-600 bg-emerald-50 border-emerald-200'
     : 'text-red-600 bg-red-50 border-red-200'
+  // Margen sobre ventas: más estable que el indicador absoluto para decidir.
+  const margenPct = ventasPonderadas > 0 ? indicadorFabricacion / ventasPonderadas : null
 
   const dataPie = [
     { name: 'MICRO', value: kilos.MICRO || 0 },
@@ -79,10 +87,16 @@ export default function Dashboard({ estado }) {
               <Coins size={20} />
             </div>
           </div>
-          <ul className="mt-4 space-y-1.5 text-sm">
-            <Linea label="Bruto" valor={brutoPorKilo} />
-            <Linea label="Baño" valor={banoPorKilo} />
-            <Linea label="Aduana" valor={aduanaPorKilo} />
+          <CostoBar
+            bruto={brutoPorKilo}
+            bano={banoPorKilo}
+            aduana={aduanaPorKilo}
+            total={costoTotalPorKilo}
+          />
+          <ul className="mt-3 space-y-1.5 text-sm">
+            <Linea label="Bruto" valor={brutoPorKilo} color={COSTO_COLORS.bruto} total={costoTotalPorKilo} />
+            <Linea label="Baño" valor={banoPorKilo} color={COSTO_COLORS.bano} total={costoTotalPorKilo} />
+            <Linea label="Aduana" valor={aduanaPorKilo} color={COSTO_COLORS.aduana} total={costoTotalPorKilo} />
           </ul>
         </article>
 
@@ -97,6 +111,12 @@ export default function Dashboard({ estado }) {
                 {indPositivo ? '+' : ''}
                 {formatCLP(indicadorFabricacion)}
               </p>
+              {margenPct !== null && (
+                <p className="mt-0.5 text-sm font-semibold opacity-80">
+                  {indPositivo ? '+' : ''}
+                  {formatPct(margenPct)} sobre ventas
+                </p>
+              )}
             </div>
             <div className="rounded-xl bg-white/70 p-2">
               {indPositivo ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
@@ -202,11 +222,43 @@ export default function Dashboard({ estado }) {
   )
 }
 
-function Linea({ label, valor }) {
+function CostoBar({ bruto, bano, aduana, total }) {
+  if (!(total > 0)) return null
+  const segmentos = [
+    { key: 'bruto', valor: bruto },
+    { key: 'bano', valor: bano },
+    { key: 'aduana', valor: aduana },
+  ].filter((s) => s.valor > 0)
+  return (
+    <div className="mt-4 flex h-2 overflow-hidden rounded-full bg-gray-100">
+      {segmentos.map((s) => (
+        <div
+          key={s.key}
+          style={{ width: `${(s.valor / total) * 100}%`, background: COSTO_COLORS[s.key] }}
+          title={`${formatPct(s.valor / total)}`}
+        />
+      ))}
+    </div>
+  )
+}
+
+function Linea({ label, valor, color, total }) {
+  const pct = total > 0 ? valor / total : null
   return (
     <li className="flex items-center justify-between text-gray-600">
-      <span>{label}</span>
-      <span className="font-medium text-gray-900">{formatCLP(valor)}</span>
+      <span className="flex items-center gap-2">
+        {color && (
+          <span
+            className="inline-block h-2.5 w-2.5 rounded-full"
+            style={{ background: color }}
+          />
+        )}
+        {label}
+        {pct !== null && (
+          <span className="text-xs text-gray-400">{formatPct(pct)}</span>
+        )}
+      </span>
+      <span className="font-medium text-gray-900 tabular-nums">{formatCLP(valor)}</span>
     </li>
   )
 }

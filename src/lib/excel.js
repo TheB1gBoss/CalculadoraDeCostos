@@ -9,9 +9,11 @@
  *   - Una hoja "PreciosVenta" (compartida, opcional)
  */
 
-import * as XLSX from 'xlsx'
 import { calcularIndicadores } from './calculos.js'
 import { formatMes } from './formato.js'
+
+// xlsx es pesado (~500 KB). Se carga bajo demanda para no inflar el bundle inicial.
+const loadXLSX = () => import('xlsx')
 
 const SHEET_PREFIX = {
   compras_bruto: 'Compras',
@@ -28,7 +30,8 @@ const sheetName = (prefix, mesKey) => `${prefix} ${mesKey}`.slice(0, 31)
 /* Export                                                                   */
 /* ────────────────────────────────────────────────────────────────────────── */
 
-export function exportarWorkbook(state, mesKey = null) {
+export async function exportarWorkbook(state, mesKey = null) {
+  const XLSX = await loadXLSX()
   const wb = XLSX.utils.book_new()
 
   const meses = mesKey ? [mesKey] : Object.keys(state.meses || {}).sort()
@@ -57,16 +60,16 @@ export function exportarWorkbook(state, mesKey = null) {
   meses.forEach((k) => {
     const m = state.meses[k]
     if (!m) return
-    addSheet(wb, sheetName(SHEET_PREFIX.compras_bruto, k), m.compras_bruto)
-    addSheet(wb, sheetName(SHEET_PREFIX.pagos, k), m.pagos)
-    addSheet(wb, sheetName(SHEET_PREFIX.banos_completados, k), m.banos_completados)
-    addSheet(wb, sheetName(SHEET_PREFIX.llegadas_mercaderia_por_bloque, k), m.llegadas_mercaderia_por_bloque)
-    addSheet(wb, sheetName(SHEET_PREFIX.servicios_completados, k), m.servicios_completados)
-    addSheet(wb, sheetName(SHEET_PREFIX.pagos_aduana, k), m.pagos_aduana)
+    addSheet(XLSX, wb, sheetName(SHEET_PREFIX.compras_bruto, k), m.compras_bruto)
+    addSheet(XLSX, wb, sheetName(SHEET_PREFIX.pagos, k), m.pagos)
+    addSheet(XLSX, wb, sheetName(SHEET_PREFIX.banos_completados, k), m.banos_completados)
+    addSheet(XLSX, wb, sheetName(SHEET_PREFIX.llegadas_mercaderia_por_bloque, k), m.llegadas_mercaderia_por_bloque)
+    addSheet(XLSX, wb, sheetName(SHEET_PREFIX.servicios_completados, k), m.servicios_completados)
+    addSheet(XLSX, wb, sheetName(SHEET_PREFIX.pagos_aduana, k), m.pagos_aduana)
 
     // Precios ponderados como hoja propia
     const cp = m.costos_ponderados_por_kilo || {}
-    addSheet(wb, `Pond ${k}`.slice(0, 31), [
+    addSheet(XLSX, wb, `Pond ${k}`.slice(0, 31), [
       { categoria: 'MICRO', precio_kg: cp.MICRO ?? cp.MICROZIRCON ?? 0 },
       { categoria: 'CADENA', precio_kg: cp.CADENA ?? 0 },
       { categoria: 'ORO GF', precio_kg: cp['ORO GF'] ?? 0 },
@@ -86,7 +89,7 @@ export function exportarWorkbook(state, mesKey = null) {
         })
       }
     })
-    if (filas.length) addSheet(wb, 'PreciosVenta', filas)
+    if (filas.length) addSheet(XLSX, wb, 'PreciosVenta', filas)
   }
 
   const fileName = mesKey
@@ -95,7 +98,7 @@ export function exportarWorkbook(state, mesKey = null) {
   XLSX.writeFile(wb, fileName)
 }
 
-function addSheet(wb, name, rows) {
+function addSheet(XLSX, wb, name, rows) {
   const data = Array.isArray(rows) && rows.length > 0 ? rows : [{}]
   const ws = XLSX.utils.json_to_sheet(data)
   XLSX.utils.book_append_sheet(wb, ws, name)
@@ -112,6 +115,7 @@ function round(n, decimals = 0) {
 /* ────────────────────────────────────────────────────────────────────────── */
 
 export async function importarWorkbook(file, prevState) {
+  const XLSX = await loadXLSX()
   const buf = await file.arrayBuffer()
   const wb = XLSX.read(buf, { type: 'array' })
 
@@ -130,8 +134,8 @@ export async function importarWorkbook(file, prevState) {
 
   mesesDetectados.forEach((mesKey) => {
     const get = (prefix) =>
-      sheetToRows(wb, sheetName(prefix, mesKey)) || []
-    const pond = sheetToRows(wb, `Pond ${mesKey}`.slice(0, 31)) || []
+      sheetToRows(XLSX, wb, sheetName(prefix, mesKey)) || []
+    const pond = sheetToRows(XLSX, wb, `Pond ${mesKey}`.slice(0, 31)) || []
     const costos = pond.reduce((acc, r) => {
       if (r.categoria) acc[r.categoria] = Number(r.precio_kg) || 0
       return acc
@@ -162,7 +166,7 @@ export async function importarWorkbook(file, prevState) {
   }
 }
 
-function sheetToRows(wb, name) {
+function sheetToRows(XLSX, wb, name) {
   const ws = wb.Sheets[name]
   if (!ws) return null
   const rows = XLSX.utils.sheet_to_json(ws, { defval: '' })

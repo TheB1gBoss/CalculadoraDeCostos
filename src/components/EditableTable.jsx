@@ -1,5 +1,5 @@
 import { Plus, Trash2 } from 'lucide-react'
-import { parseNumeroFlexible } from '../lib/formato.js'
+import NumberInput from './NumberInput.jsx'
 
 /**
  * Tabla editable inline. Genérica, controlada por `rows`.
@@ -20,9 +20,8 @@ export default function EditableTable({
   totals = [],
   emptyText = 'Sin registros.',
 }) {
-  const setCell = (idx, key, raw, type) => {
+  const setCell = (idx, key, value) => {
     const next = rows.slice()
-    const value = type === 'number' ? parseNumeroFlexible(raw) : raw
     next[idx] = { ...next[idx], [key]: value }
     onChange(next)
   }
@@ -69,21 +68,34 @@ export default function EditableTable({
             )}
             {rows.map((row, idx) => (
               <tr key={idx} className="group">
-                {columns.map((c) => (
-                  <td
-                    key={c.key}
-                    className="border-b border-gray-100 px-1 py-1 align-top"
-                  >
-                    <input
-                      type={c.type === 'date' ? 'date' : c.type === 'number' ? 'text' : 'text'}
-                      inputMode={c.type === 'number' ? 'decimal' : undefined}
-                      value={row[c.key] ?? ''}
-                      placeholder={c.placeholder}
-                      onChange={(e) => setCell(idx, c.key, e.target.value, c.type)}
-                      className="input"
-                    />
-                  </td>
-                ))}
+                {columns.map((c) =>
+                  c.type === 'number' ? (
+                    <td
+                      key={c.key}
+                      className="border-b border-gray-100 px-1 py-1 align-top"
+                    >
+                      <NumberInput
+                        value={row[c.key] ?? 0}
+                        placeholder={c.placeholder}
+                        onChange={(value) => setCell(idx, c.key, value)}
+                        className="input text-right tabular-nums"
+                      />
+                    </td>
+                  ) : (
+                    <td
+                      key={c.key}
+                      className="border-b border-gray-100 px-1 py-1 align-top"
+                    >
+                      <input
+                        type={c.type === 'date' ? 'date' : 'text'}
+                        value={row[c.key] ?? ''}
+                        placeholder={c.placeholder}
+                        onChange={(e) => setCell(idx, c.key, e.target.value)}
+                        className="input"
+                      />
+                    </td>
+                  ),
+                )}
                 <td className="border-b border-gray-100 px-1 py-1 align-middle text-right">
                   <button
                     type="button"

@@ -10,12 +10,12 @@ import {
 } from 'lucide-react'
 import Accordion from './Accordion.jsx'
 import EditableTable from './EditableTable.jsx'
+import NumberInput from './NumberInput.jsx'
 import {
   formatCLP,
   formatKilos,
   formatNumero,
   formatReales,
-  parseNumeroFlexible,
 } from '../lib/formato.js'
 
 export default function EntradaDatos({ estado }) {
@@ -195,9 +195,9 @@ function Llegadas({ bloques, onChange }) {
   const addBloque = () =>
     onChange([...bloques, { MICRO: 0, CADENA: 0, 'ORO GF': 0 }])
 
-  const updateBloque = (idx, key, raw) => {
+  const updateBloque = (idx, key, value) => {
     const next = bloques.slice()
-    next[idx] = { ...next[idx], [key]: parseNumeroFlexible(raw) }
+    next[idx] = { ...next[idx], [key]: value }
     onChange(next)
   }
 
@@ -234,12 +234,10 @@ function Llegadas({ bloques, onChange }) {
                 <span className="block text-[10px] font-medium uppercase tracking-wide text-gray-500">
                   {cat}
                 </span>
-                <input
-                  type="text"
-                  inputMode="decimal"
+                <NumberInput
                   value={b[cat] ?? 0}
-                  onChange={(e) => updateBloque(idx, cat, e.target.value)}
-                  className="input"
+                  onChange={(value) => updateBloque(idx, cat, value)}
+                  className="input text-right tabular-nums"
                 />
               </label>
             ))}
@@ -271,8 +269,14 @@ function Llegadas({ bloques, onChange }) {
 }
 
 function PreciosPonderados({ valores, onChange }) {
-  const get = (k) => valores[k] ?? valores[k === 'MICRO' ? 'MICROZIRCON' : ''] ?? 0
-  const set = (k, raw) => onChange({ ...valores, [k]: parseNumeroFlexible(raw) })
+  // 'MICROZIRCON' es la clave histórica del Excel para MICRO.
+  const get = (k) =>
+    Number(valores[k] ?? (k === 'MICRO' ? valores.MICROZIRCON : 0)) || 0
+  const set = (k, value) => {
+    // Normaliza a las claves canónicas y descarta la histórica MICROZIRCON.
+    const { MICROZIRCON, ...rest } = valores
+    onChange({ ...rest, [k]: value })
+  }
 
   return (
     <div className="grid gap-3 sm:grid-cols-3">
@@ -280,12 +284,10 @@ function PreciosPonderados({ valores, onChange }) {
         <label key={cat} className="block">
           <span className="label">{cat}</span>
           <div className="relative">
-            <input
-              type="text"
-              inputMode="decimal"
+            <NumberInput
               value={get(cat)}
-              onChange={(e) => set(cat, e.target.value)}
-              className="input pr-12"
+              onChange={(value) => set(cat, value)}
+              className="input pr-12 text-right tabular-nums"
             />
             <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">
               /kg

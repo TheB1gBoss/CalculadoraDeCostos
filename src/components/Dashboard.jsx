@@ -9,23 +9,6 @@ const CAT_COLORS = {
   'ORO GF': { dark: '#fbbf24', text: 'text-amber-400'   },
 }
 
-function linReg(vals) {
-  const n = vals.length
-  if (n < 2) return null
-  const sx = n * (n - 1) / 2
-  const sx2 = vals.reduce((s, _, i) => s + i * i, 0)
-  const sy = vals.reduce((s, v) => s + v, 0)
-  const sxy = vals.reduce((s, v, i) => s + i * v, 0)
-  const slope = (n * sxy - sx * sy) / (n * sx2 - sx * sx)
-  const intercept = (sy - slope * sx) / n
-  return (x) => Math.max(0, slope * x + intercept)
-}
-
-function nextMonthKey(yyyyMm, offset) {
-  const [y, m] = yyyyMm.split('-').map(Number)
-  const d = new Date(y, m - 1 + offset, 1)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-}
 
 function mesLabel(yyyyMm) {
   const [y, m] = yyyyMm.split('-').map(Number)
@@ -87,22 +70,7 @@ export default function Dashboard({ estado }) {
     .map((p) => ({ fecha: p.fecha, tc: p.chilenos / p.reales }))
     .sort((a, b) => a.fecha < b.fecha ? -1 : 1)
 
-  // Proyección lineal basada en períodos con TC y R$/kg conocidos
-  const periodosConTC    = periodos.filter(p => p.tc > 0)
-  const periodosConRkg   = periodos.filter(p => p.rPorKg > 0)
-  const tcVals           = periodosConTC.map(p => p.tc)
-  const rkgVals          = periodosConRkg.map(p => p.rPorKg)
-  const tcFn             = linReg(tcVals)
-  const rkgFn            = linReg(rkgVals)
-  const n                = periodos.length
-  const lastKey          = periodos.length > 0 ? periodos[periodos.length - 1].key : mesActivo
-  const proyecciones = [1, 2, 3].map((off) => ({
-    key:   nextMonthKey(lastKey, off),
-    tc:    tcFn  ? tcFn(periodosConTC.length - 1 + off)  : null,
-    costo: rkgFn ? rkgFn(periodosConRkg.length - 1 + off) : null,
-  }))
-
-  const precios = normalizarPorCategoria(mesData.costos_ponderados_por_kilo || {})
+const precios = normalizarPorCategoria(mesData.costos_ponderados_por_kilo || {})
   const margenes = ['MICRO', 'CADENA', 'ORO GF'].map((cat) => {
     const precio    = precios[cat] || 0
     const costoCat  = costoPorCategoria?.[cat] || 0
@@ -487,98 +455,6 @@ export default function Dashboard({ estado }) {
           </article>
         )
       })()}
-
-      {/* ── 10. Evolución histórica por período de compra ── */}
-      {periodos.length >= 2 && (
-        <article className="card overflow-hidden">
-          <div className="px-5 py-4 border-b border-ray-border/40">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Evolución histórica</p>
-            <p className="text-[10px] text-slate-600 mt-0.5">Agrupado por fecha de las entradas</p>
-          </div>
-          {/* Gráfico R$/kg por período */}
-          {periodos.filter(p => p.rPorKg > 0).length >= 2 && (
-            <div className="px-4 pt-4 pb-3 border-b border-ray-border/40">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-3">R$/kg por período</p>
-              <div className="h-36">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={periodos.filter(p => p.rPorKg > 0).map(p => ({ mes: p.label, rPorKg: p.rPorKg }))}
-                    margin={{ top: 4, right: 4, left: -14, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#152338"/>
-                    <XAxis dataKey="mes" tick={{ fontSize: 9, fill: '#475569' }} interval="preserveStartEnd"/>
-                    <YAxis tick={{ fontSize: 9, fill: '#475569' }} tickFormatter={(v) => formatNumero(v,0)} domain={['auto','auto']}/>
-                    <Tooltip contentStyle={{ borderRadius:10, background:'#0b1628', border:'1px solid #152338', fontSize:11, color:'#e2e8f0' }}
-                      formatter={(v) => [formatNumero(v,2)+' R$/kg', 'Precio compra']}/>
-                    <Line type="monotone" dataKey="rPorKg" stroke="#34d399" strokeWidth={2}
-                      dot={{ r:2.5, fill:'#34d399', strokeWidth:0 }} activeDot={{ r:4 }}/>
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          )}
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs min-w-[380px]">
-              <thead>
-                <tr className="border-b border-ray-border/60 bg-ray-border/10">
-                  <th className="text-left py-2.5 px-5 text-[9px] font-bold uppercase tracking-wider text-slate-600">Período</th>
-                  <th className="text-right py-2.5 px-4 text-[9px] font-bold uppercase tracking-wider text-slate-600 border-l border-ray-border/40">TC pond.</th>
-                  <th className="text-right py-2.5 px-4 text-[9px] font-bold uppercase tracking-wider text-slate-600 border-l border-ray-border/40">R$/kg</th>
-                  <th className="text-right py-2.5 px-4 text-[9px] font-bold uppercase tracking-wider text-slate-600 border-l border-ray-border/40">Kg</th>
-                  <th className="text-right py-2.5 px-5 text-[9px] font-bold uppercase tracking-wider text-slate-600 border-l border-ray-border/40">Total R$</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-ray-border/30">
-                {periodos.map((p) => (
-                  <tr key={p.key} className="hover:bg-ray-border/10 transition-colors">
-                    <td className="py-3 px-5 font-semibold text-slate-300">{p.label}</td>
-                    <td className="py-3 px-4 text-right tabular-nums text-slate-400 border-l border-ray-border/30">{p.tc > 0 ? formatNumero(p.tc,2) : '—'}</td>
-                    <td className="py-3 px-4 text-right tabular-nums text-ray-cyan font-semibold border-l border-ray-border/30">{p.rPorKg > 0 ? formatNumero(p.rPorKg,2) : '—'}</td>
-                    <td className="py-3 px-4 text-right tabular-nums text-slate-400 border-l border-ray-border/30">{p.kg > 0 ? formatKilos(p.kg) : '—'}</td>
-                    <td className="py-3 px-5 text-right tabular-nums text-slate-400 border-l border-ray-border/30">{p.r$ > 0 ? formatReales(p.r$) : '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </article>
-      )}
-
-      {/* ── 11. Proyección ── */}
-      {n >= 2 && (
-        <article className="card overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-ray-border/40">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Proyección</p>
-            <p className="text-[10px] text-slate-600">Tendencia lineal · {n} meses</p>
-          </div>
-          {/* Encabezado columnas */}
-          <div className="grid grid-cols-3 divide-x divide-ray-border/40 border-b border-ray-border/40 bg-ray-border/10">
-            {['Mes','TC estimado','Costo/kg est.'].map(h => (
-              <div key={h} className="px-4 py-2 text-center">
-                <p className="text-[9px] font-bold uppercase tracking-wider text-slate-600">{h}</p>
-              </div>
-            ))}
-          </div>
-          <div className="divide-y divide-ray-border/40">
-            {proyecciones.map(({ key, tc, costo }, i) => (
-              <div key={key} className={`grid grid-cols-3 divide-x divide-ray-border/40 ${i === 0 ? 'bg-ray-cyan/5' : ''}`}>
-                <div className="px-4 py-3">
-                  <p className={`text-xs font-semibold ${i === 0 ? 'text-ray-cyan' : 'text-slate-400'}`}>{mesLabel(key)}</p>
-                  {i === 0 && <p className="text-[9px] text-slate-600">Próximo</p>}
-                </div>
-                <div className="px-4 py-3 text-center">
-                  <p className={`text-xs font-semibold tabular-nums ${i === 0 ? 'text-white' : 'text-slate-500'}`}>
-                    {tc ? formatNumero(tc,2) : '—'}
-                  </p>
-                </div>
-                <div className="px-4 py-3 text-center">
-                  <p className={`text-xs font-semibold tabular-nums ${i === 0 ? 'text-white' : 'text-slate-500'}`}>
-                    {costo ? formatCLP(costo) : '—'}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </article>
-      )}
 
     </div>
   )

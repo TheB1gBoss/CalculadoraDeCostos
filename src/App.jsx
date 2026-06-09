@@ -143,13 +143,7 @@ export default function App() {
         <IndicadorBar indicadores={estado.indicadores} />
       </header>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-4 md:px-6 md:py-6 space-y-4">
-        <MesSelector
-          mesActivo={estado.mesActivo}
-          mesesOrdenados={estado.mesesOrdenados}
-          onChange={estado.setMesActivo}
-          onCrear={estado.crearMes}
-        />
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-4 md:px-6 md:py-6">
         {tab === 'ingreso'   && <Ingreso   estado={estado} />}
         {tab === 'resumen'   && <Dashboard estado={estado} />}
         {tab === 'historial' && <Historial estado={estado} />}

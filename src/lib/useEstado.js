@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { doc, getDoc, onSnapshot, setDoc } from 'firebase/firestore'
 import datosIniciales from '../data/datos_iniciales.json'
-import { calcularIndicadores } from './calculos.js'
+import { calcularIndicadores, mergeMeses } from './calculos.js'
 import { db } from './firebase.js'
 import {
   deleteMes as storageDeleteMes,
@@ -44,7 +44,15 @@ export function useEstado() {
     () => Object.keys(state.meses || {}).sort(),
     [state.meses],
   )
-  const indicadores = useMemo(() => calcularIndicadores(mesData), [mesData])
+  // Los costos se calculan SIEMPRE sobre todo el histórico (todos los meses
+  // juntos), nunca por mes. La tarifa de precios ponderados se toma del mes
+  // activo (config de venta vigente).
+  const indicadores = useMemo(() => {
+    const merged = mergeMeses(state.meses)
+    merged.costos_ponderados_por_kilo =
+      mesData.costos_ponderados_por_kilo || merged.costos_ponderados_por_kilo
+    return calcularIndicadores(merged)
+  }, [state.meses, mesData])
 
   const setMesActivo = useCallback((key) => {
     setState((s) => ({ ...s, mesActivo: key }))

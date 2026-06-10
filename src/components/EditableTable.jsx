@@ -1,4 +1,5 @@
 import { Plus, Trash2 } from 'lucide-react'
+import DateInput from './DateInput.jsx'
 import NumberInput from './NumberInput.jsx'
 
 /**
@@ -81,13 +82,23 @@ export default function EditableTable({
                         className="input text-right tabular-nums"
                       />
                     </td>
+                  ) : c.type === 'date' ? (
+                    <td
+                      key={c.key}
+                      className="border-b border-gray-100 px-1 py-1 align-top"
+                    >
+                      <DateInput
+                        value={row[c.key] ?? ''}
+                        onChange={(value) => setCell(idx, c.key, value)}
+                      />
+                    </td>
                   ) : (
                     <td
                       key={c.key}
                       className="border-b border-gray-100 px-1 py-1 align-top"
                     >
                       <input
-                        type={c.type === 'date' ? 'date' : 'text'}
+                        type="text"
                         value={row[c.key] ?? ''}
                         placeholder={c.placeholder}
                         onChange={(e) => setCell(idx, c.key, e.target.value)}

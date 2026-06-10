@@ -48,6 +48,13 @@ export const formatPct = (n) => {
 /** ISO 'YYYY-MM-DD' → 'dd/mm/aaaa'. Si la fecha es inválida, devuelve el original. */
 export function formatFecha(iso) {
   if (!iso) return ''
+  // Parseo a nivel de string y construcción de Date LOCAL (no UTC) para evitar
+  // el corrimiento de un día en husos negativos como Chile.
+  const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (m) {
+    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+    return fechaFormatter.format(d)
+  }
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return iso
   return fechaFormatter.format(d)

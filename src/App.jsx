@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Coins } from 'lucide-react'
 import TabBar from './components/TabBar.jsx'
-import MesSelector from './components/MesSelector.jsx'
 import Dashboard from './components/Dashboard.jsx'
 import EntradaDatos from './components/EntradaDatos.jsx'
 import Proyecciones from './components/Proyecciones.jsx'
@@ -26,22 +25,6 @@ export default function App() {
             </h1>
             <p className="text-xs text-gray-500">Inversiones Aravena SPA</p>
           </div>
-          <div className="hidden w-72 md:block">
-            <MesSelector
-              mesActivo={estado.mesActivo}
-              mesesOrdenados={estado.mesesOrdenados}
-              onChange={estado.setMesActivo}
-              onCrear={estado.crearMes}
-            />
-          </div>
-        </div>
-        <div className="md:hidden mx-auto max-w-5xl px-4 pb-3">
-          <MesSelector
-            mesActivo={estado.mesActivo}
-            mesesOrdenados={estado.mesesOrdenados}
-            onChange={estado.setMesActivo}
-            onCrear={estado.crearMes}
-          />
         </div>
         <div className="hidden md:block">
           <TabBar activo={tab} onChange={setTab} />

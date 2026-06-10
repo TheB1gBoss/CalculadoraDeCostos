@@ -19,22 +19,26 @@ import {
 } from '../lib/formato.js'
 
 export default function EntradaDatos({ estado }) {
-  const { mesData, updateMes } = estado
+  const { datos, updateDatos } = estado
 
-  const setField = (key) => (rows) => updateMes({ [key]: rows })
+  const setField = (key) => (rows) => updateDatos({ [key]: rows })
 
   return (
     <div className="space-y-3">
+      <p className="text-xs text-gray-500">
+        Todos los registros viven juntos. La fecha es solo un dato de cada fila;
+        no separa ni filtra los cálculos.
+      </p>
       {/* 1. Compras de bruto */}
       <Accordion
         title="Compras de bruto"
         subtitle="Compras de oro/plata en Brasil"
         icon={ShoppingCart}
         defaultOpen
-        badge={`${mesData.compras_bruto?.length || 0}`}
+        badge={`${datos.compras_bruto?.length || 0}`}
       >
         <EditableTable
-          rows={mesData.compras_bruto || []}
+          rows={datos.compras_bruto || []}
           onChange={setField('compras_bruto')}
           newRow={() => ({ fecha: '', detalle: '', kilos: 0, total_reales: 0 })}
           columns={[
@@ -47,19 +51,19 @@ export default function EntradaDatos({ estado }) {
             { key: 'kilos', format: formatKilos },
             { key: 'total_reales', format: formatReales },
           ]}
-          emptyText="Sin compras de bruto este mes."
+          emptyText="Sin compras de bruto registradas."
         />
       </Accordion>
 
       {/* 2. Pagos al exterior */}
       <Accordion
         title="Pagos al exterior"
-        subtitle="Cada pago define el TC ponderado del mes"
+        subtitle="Cada pago ajusta el TC ponderado"
         icon={Banknote}
-        badge={`${mesData.pagos?.length || 0}`}
+        badge={`${datos.pagos?.length || 0}`}
       >
         <EditableTable
-          rows={mesData.pagos || []}
+          rows={datos.pagos || []}
           onChange={setField('pagos')}
           newRow={() => ({ fecha: '', reales: 0, chilenos: 0 })}
           columns={[
@@ -71,9 +75,9 @@ export default function EntradaDatos({ estado }) {
             { key: 'reales', format: formatReales },
             { key: 'chilenos', format: formatCLP },
           ]}
-          emptyText="Sin pagos al exterior este mes."
+          emptyText="Sin pagos al exterior registrados."
         />
-        <PagosResumen pagos={mesData.pagos || []} />
+        <PagosResumen pagos={datos.pagos || []} />
       </Accordion>
 
       {/* 3. Baños completados */}
@@ -81,10 +85,10 @@ export default function EntradaDatos({ estado }) {
         title="Baños completados"
         subtitle="Procesamiento (valores en R$, se convierten a CLP)"
         icon={Droplet}
-        badge={`${mesData.banos_completados?.length || 0}`}
+        badge={`${datos.banos_completados?.length || 0}`}
       >
         <EditableTable
-          rows={mesData.banos_completados || []}
+          rows={datos.banos_completados || []}
           onChange={setField('banos_completados')}
           newRow={() => ({ fecha: '', detalle: '', kilos: 0, total_clp: 0 })}
           columns={[
@@ -97,7 +101,7 @@ export default function EntradaDatos({ estado }) {
             { key: 'kilos', format: formatKilos },
             { key: 'total_clp', format: formatReales },
           ]}
-          emptyText="Sin baños este mes."
+          emptyText="Sin baños registrados."
         />
       </Accordion>
 
@@ -106,10 +110,10 @@ export default function EntradaDatos({ estado }) {
         title="Llegadas de mercadería"
         subtitle="Bloques por embarque — kilos por categoría"
         icon={PackageCheck}
-        badge={`${mesData.llegadas_mercaderia_por_bloque?.length || 0}`}
+        badge={`${datos.llegadas_mercaderia_por_bloque?.length || 0}`}
       >
         <Llegadas
-          bloques={mesData.llegadas_mercaderia_por_bloque || []}
+          bloques={datos.llegadas_mercaderia_por_bloque || []}
           onChange={setField('llegadas_mercaderia_por_bloque')}
         />
       </Accordion>
@@ -119,7 +123,7 @@ export default function EntradaDatos({ estado }) {
         title="Servicios y aduana"
         subtitle="Servicios en R$ + pagos de aduana en CLP"
         icon={Wrench}
-        badge={`${(mesData.servicios_completados?.length || 0) + (mesData.pagos_aduana?.length || 0)}`}
+        badge={`${(datos.servicios_completados?.length || 0) + (datos.pagos_aduana?.length || 0)}`}
       >
         <div className="space-y-5">
           <div>
@@ -127,7 +131,7 @@ export default function EntradaDatos({ estado }) {
               Servicios completados (R$)
             </h3>
             <EditableTable
-              rows={mesData.servicios_completados || []}
+              rows={datos.servicios_completados || []}
               onChange={setField('servicios_completados')}
               newRow={() => ({ fecha: '', detalle: '', total_reales: 0 })}
               columns={[
@@ -136,7 +140,7 @@ export default function EntradaDatos({ estado }) {
                 { key: 'total_reales', label: 'Total R$', type: 'number', placeholder: '0,00' },
               ]}
               totals={[{ key: 'total_reales', format: formatReales }]}
-              emptyText="Sin servicios este mes."
+              emptyText="Sin servicios registrados."
             />
           </div>
 
@@ -145,7 +149,7 @@ export default function EntradaDatos({ estado }) {
               Pagos de aduana (CLP)
             </h3>
             <EditableTable
-              rows={mesData.pagos_aduana || []}
+              rows={datos.pagos_aduana || []}
               onChange={setField('pagos_aduana')}
               newRow={() => ({ fecha: '', detalle: '', kilos: 0, total_clp: 0 })}
               columns={[
@@ -158,7 +162,7 @@ export default function EntradaDatos({ estado }) {
                 { key: 'kilos', format: formatKilos },
                 { key: 'total_clp', format: formatCLP },
               ]}
-              emptyText="Sin pagos de aduana este mes."
+              emptyText="Sin pagos de aduana registrados."
             />
           </div>
         </div>
@@ -171,8 +175,8 @@ export default function EntradaDatos({ estado }) {
         icon={Boxes}
       >
         <PreciosPonderados
-          valores={mesData.costos_ponderados_por_kilo || {}}
-          onChange={(obj) => updateMes({ costos_ponderados_por_kilo: obj })}
+          valores={datos.costos_ponderados_por_kilo || {}}
+          onChange={(obj) => updateDatos({ costos_ponderados_por_kilo: obj })}
         />
       </Accordion>
     </div>

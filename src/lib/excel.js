@@ -1,21 +1,18 @@
 /**
  * Import / Export Excel (.xlsx) usando SheetJS.
  *
- * Formato del workbook:
- *   - Una hoja "Resumen" con KPIs por mes
- *   - Por cada mes (key 'YYYY-MM'), 6 hojas con sufijo del mes:
- *       Compras YYYY-MM, Pagos YYYY-MM, Banos YYYY-MM,
- *       Llegadas YYYY-MM, Servicios YYYY-MM, Aduana YYYY-MM
- *   - Una hoja "PreciosVenta" (compartida, opcional)
+ * Modelo de pool único: el workbook tiene una hoja por tipo de registro
+ * (Compras, Pagos, Banos, Llegadas, Servicios, Aduana), una hoja "Pond" con
+ * los precios ponderados, una hoja "Resumen" con los KPIs globales y, si
+ * existe, "PreciosVenta".
  */
 
 import { calcularIndicadores } from './calculos.js'
-import { formatMes } from './formato.js'
 
 // xlsx es pesado (~500 KB). Se carga bajo demanda para no inflar el bundle inicial.
 const loadXLSX = () => import('xlsx')
 
-const SHEET_PREFIX = {
+const SHEETS = {
   compras_bruto: 'Compras',
   pagos: 'Pagos',
   banos_completados: 'Banos',
@@ -24,24 +21,21 @@ const SHEET_PREFIX = {
   pagos_aduana: 'Aduana',
 }
 
-const sheetName = (prefix, mesKey) => `${prefix} ${mesKey}`.slice(0, 31)
+const DEFAULT_PRECIOS = { MICRO: 570000, CADENA: 405000, 'ORO GF': 1500000 }
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Export                                                                   */
 /* ────────────────────────────────────────────────────────────────────────── */
 
-export async function exportarWorkbook(state, mesKey = null) {
+export async function exportarWorkbook(state) {
   const XLSX = await loadXLSX()
   const wb = XLSX.utils.book_new()
+  const datos = state.datos || {}
 
-  const meses = mesKey ? [mesKey] : Object.keys(state.meses || {}).sort()
-
-  // Resumen
-  const resumen = meses.map((k) => {
-    const ind = calcularIndicadores(state.meses[k])
-    return {
-      Mes: k,
-      Etiqueta: formatMes(k),
+  // Resumen (KPIs globales)
+  const ind = calcularIndicadores(datos)
+  addSheet(XLSX, wb, 'Resumen', [
+    {
       'TC ponderado': round(ind.tipoCambio, 4),
       'Bruto/kg': round(ind.brutoPorKilo),
       'Baño/kg': round(ind.banoPorKilo),
@@ -52,31 +46,23 @@ export async function exportarWorkbook(state, mesKey = null) {
       'Kilos ORO GF': round(ind.kilos['ORO GF'], 3),
       'Kilos total': round(ind.kilos.total, 3),
       'Indicador fabricación': round(ind.indicadorFabricacion),
-    }
-  })
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumen), 'Resumen')
+    },
+  ])
 
-  // Hojas por mes
-  meses.forEach((k) => {
-    const m = state.meses[k]
-    if (!m) return
-    addSheet(XLSX, wb, sheetName(SHEET_PREFIX.compras_bruto, k), m.compras_bruto)
-    addSheet(XLSX, wb, sheetName(SHEET_PREFIX.pagos, k), m.pagos)
-    addSheet(XLSX, wb, sheetName(SHEET_PREFIX.banos_completados, k), m.banos_completados)
-    addSheet(XLSX, wb, sheetName(SHEET_PREFIX.llegadas_mercaderia_por_bloque, k), m.llegadas_mercaderia_por_bloque)
-    addSheet(XLSX, wb, sheetName(SHEET_PREFIX.servicios_completados, k), m.servicios_completados)
-    addSheet(XLSX, wb, sheetName(SHEET_PREFIX.pagos_aduana, k), m.pagos_aduana)
-
-    // Precios ponderados como hoja propia
-    const cp = m.costos_ponderados_por_kilo || {}
-    addSheet(XLSX, wb, `Pond ${k}`.slice(0, 31), [
-      { categoria: 'MICRO', precio_kg: cp.MICRO ?? cp.MICROZIRCON ?? 0 },
-      { categoria: 'CADENA', precio_kg: cp.CADENA ?? 0 },
-      { categoria: 'ORO GF', precio_kg: cp['ORO GF'] ?? 0 },
-    ])
+  // Una hoja por tipo de registro
+  Object.entries(SHEETS).forEach(([campo, nombre]) => {
+    addSheet(XLSX, wb, nombre, datos[campo] || [])
   })
 
-  // Precios venta (compartido)
+  // Precios ponderados
+  const cp = datos.costos_ponderados_por_kilo || {}
+  addSheet(XLSX, wb, 'Pond', [
+    { categoria: 'MICRO', precio_kg: cp.MICRO ?? cp.MICROZIRCON ?? 0 },
+    { categoria: 'CADENA', precio_kg: cp.CADENA ?? 0 },
+    { categoria: 'ORO GF', precio_kg: cp['ORO GF'] ?? 0 },
+  ])
+
+  // Precios venta (referencia comercial)
   if (state.preciosVenta) {
     const filas = []
     Object.entries(state.preciosVenta).forEach(([linea, valor]) => {
@@ -92,16 +78,13 @@ export async function exportarWorkbook(state, mesKey = null) {
     if (filas.length) addSheet(XLSX, wb, 'PreciosVenta', filas)
   }
 
-  const fileName = mesKey
-    ? `calculadora_${mesKey}.xlsx`
-    : `calculadora_todos_los_meses.xlsx`
-  XLSX.writeFile(wb, fileName)
+  XLSX.writeFile(wb, 'calculadora_respaldo.xlsx')
 }
 
 function addSheet(XLSX, wb, name, rows) {
   const data = Array.isArray(rows) && rows.length > 0 ? rows : [{}]
   const ws = XLSX.utils.json_to_sheet(data)
-  XLSX.utils.book_append_sheet(wb, ws, name)
+  XLSX.utils.book_append_sheet(wb, ws, name.slice(0, 31))
 }
 
 function round(n, decimals = 0) {
@@ -119,57 +102,36 @@ export async function importarWorkbook(file, prevState) {
   const buf = await file.arrayBuffer()
   const wb = XLSX.read(buf, { type: 'array' })
 
-  // Detectar meses presentes a partir de los nombres de hoja
-  const mesesDetectados = new Set()
-  wb.SheetNames.forEach((n) => {
-    const m = n.match(/(\d{4}-\d{2})$/)
-    if (m) mesesDetectados.add(m[1])
-  })
-
-  if (mesesDetectados.size === 0) {
-    throw new Error('No se detectaron hojas con formato "YYYY-MM" en el archivo.')
+  const tieneAlguna = Object.values(SHEETS).some((n) => wb.Sheets[n])
+  if (!tieneAlguna) {
+    throw new Error(
+      'El archivo no tiene las hojas esperadas (Compras, Pagos, Banos, ...).',
+    )
   }
 
-  const nuevosMeses = { ...(prevState?.meses || {}) }
-
-  mesesDetectados.forEach((mesKey) => {
-    const get = (prefix) =>
-      sheetToRows(XLSX, wb, sheetName(prefix, mesKey)) || []
-    const pond = sheetToRows(XLSX, wb, `Pond ${mesKey}`.slice(0, 31)) || []
-    const costos = pond.reduce((acc, r) => {
-      if (r.categoria) acc[r.categoria] = Number(r.precio_kg) || 0
-      return acc
-    }, {})
-
-    nuevosMeses[mesKey] = {
-      compras_bruto: get(SHEET_PREFIX.compras_bruto),
-      pagos: get(SHEET_PREFIX.pagos),
-      banos_completados: get(SHEET_PREFIX.banos_completados),
-      llegadas_mercaderia_por_bloque: get(SHEET_PREFIX.llegadas_mercaderia_por_bloque),
-      servicios_completados: get(SHEET_PREFIX.servicios_completados),
-      pagos_aduana: get(SHEET_PREFIX.pagos_aduana),
-      costos_ponderados_por_kilo:
-        Object.keys(costos).length > 0
-          ? costos
-          : prevState?.meses?.[mesKey]?.costos_ponderados_por_kilo || {
-              MICRO: 570000,
-              CADENA: 405000,
-              'ORO GF': 1500000,
-            },
-    }
+  const datos = {}
+  Object.entries(SHEETS).forEach(([campo, nombre]) => {
+    datos[campo] = sheetToRows(XLSX, wb, nombre)
   })
 
-  return {
-    ...prevState,
-    meses: nuevosMeses,
-    mesActivo: prevState?.mesActivo || [...mesesDetectados].sort().pop(),
-  }
+  const pond = sheetToRows(XLSX, wb, 'Pond')
+  const costos = pond.reduce((acc, r) => {
+    if (r.categoria) acc[r.categoria] = Number(r.precio_kg) || 0
+    return acc
+  }, {})
+  datos.costos_ponderados_por_kilo =
+    Object.keys(costos).length > 0
+      ? costos
+      : prevState?.datos?.costos_ponderados_por_kilo || { ...DEFAULT_PRECIOS }
+
+  return { ...prevState, datos }
 }
 
 function sheetToRows(XLSX, wb, name) {
-  const ws = wb.Sheets[name]
-  if (!ws) return null
+  const ws = wb.Sheets[name.slice(0, 31)]
+  if (!ws) return []
   const rows = XLSX.utils.sheet_to_json(ws, { defval: '' })
-  // Filtra filas completamente vacías (cuando exportamos un sheet vacío hicimos un [{}])
-  return rows.filter((r) => Object.values(r).some((v) => v !== '' && v !== null && v !== undefined))
+  return rows.filter((r) =>
+    Object.values(r).some((v) => v !== '' && v !== null && v !== undefined),
+  )
 }

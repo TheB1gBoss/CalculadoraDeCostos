@@ -1,7 +1,7 @@
 import {
   BarChart3,
   ClipboardList,
-  History,
+  Database,
   TrendingUp,
   Wallet,
 } from 'lucide-react'
@@ -11,7 +11,7 @@ export const TABS = [
   { id: 'entrada', label: 'Entrada', icon: ClipboardList },
   { id: 'proyecciones', label: 'Proyecciones', icon: TrendingUp },
   { id: 'precios', label: 'Precios', icon: Wallet },
-  { id: 'historial', label: 'Historial', icon: History },
+  { id: 'historial', label: 'Respaldo', icon: Database },
 ]
 
 export default function TabBar({ activo, onChange }) {

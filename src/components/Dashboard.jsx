@@ -72,7 +72,7 @@ export default function Dashboard({ estado }) {
   return (
     <div className="space-y-4">
       <p className="text-xs text-gray-500">
-        Costos calculados sobre <span className="font-medium text-gray-700">todo el histórico</span> (no por mes).
+        Costos calculados sobre <span className="font-medium text-gray-700">todos los datos juntos</span>.
       </p>
 
       <section className="grid gap-4 sm:grid-cols-2">

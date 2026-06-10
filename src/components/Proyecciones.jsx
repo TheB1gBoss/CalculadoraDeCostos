@@ -9,7 +9,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { calcularIndicadores, mergeMeses, variacion } from '../lib/calculos.js'
+import { calcularIndicadores, variacion } from '../lib/calculos.js'
 import { formatCLP, formatMes, formatPct } from '../lib/formato.js'
 
 /** 'YYYY-MM-DD...' → 'YYYY-MM'. Descarta fechas corruptas (año < 2000). */
@@ -29,16 +29,15 @@ const CAMPOS_CON_FECHA = [
 ]
 
 export default function Proyecciones({ estado }) {
-  const { state } = estado
+  const { datos } = estado
 
-  // Serie ACUMULADA: cada mes usa todos los registros con fecha <= ese mes.
-  // Así el costo nunca "se reinicia" por mes; refleja el promedio histórico
-  // tal como crece a medida que entran nuevas compras.
+  // Serie ACUMULADA: cada corte usa todos los registros con fecha <= ese mes.
+  // No es un costo "por mes": cada punto es el promedio histórico de TODO lo
+  // registrado hasta esa fecha. Solo sirve para ver la tendencia en el tiempo.
   const serie = useMemo(() => {
-    const datos = mergeMeses(state.meses)
     const mesesSet = new Set()
     CAMPOS_CON_FECHA.forEach((campo) => {
-      datos[campo].forEach((r) => {
+      ;(datos[campo] || []).forEach((r) => {
         const mm = mesDe(r.fecha)
         if (mm) mesesSet.add(mm)
       })
@@ -46,7 +45,7 @@ export default function Proyecciones({ estado }) {
     const mesesSerie = [...mesesSet].sort()
 
     return mesesSerie.map((M) => {
-      const hasta = (arr) => arr.filter((r) => mesDe(r.fecha) <= M)
+      const hasta = (arr) => (arr || []).filter((r) => mesDe(r.fecha) <= M)
       const parcial = {
         compras_bruto: hasta(datos.compras_bruto),
         pagos: hasta(datos.pagos),
@@ -63,7 +62,7 @@ export default function Proyecciones({ estado }) {
         ...ind,
       }
     })
-  }, [state.meses])
+  }, [datos])
 
   if (serie.length === 0) {
     return (

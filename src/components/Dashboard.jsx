@@ -28,7 +28,7 @@ const COSTO_COLORS = {
 }
 
 export default function Dashboard({ estado }) {
-  const { indicadores, mesData } = estado
+  const { indicadores } = estado
   const {
     tipoCambio,
     brutoPorKilo,
@@ -41,7 +41,7 @@ export default function Dashboard({ estado }) {
     kilos,
   } = indicadores
 
-  const hayData = (mesData?.compras_bruto?.length || 0) > 0 || (mesData?.pagos?.length || 0) > 0
+  const hayData = estado.tieneDatos
 
   if (!hayData) {
     return (
@@ -71,6 +71,10 @@ export default function Dashboard({ estado }) {
 
   return (
     <div className="space-y-4">
+      <p className="text-xs text-gray-500">
+        Costos calculados sobre <span className="font-medium text-gray-700">todo el histórico</span> (no por mes).
+      </p>
+
       <section className="grid gap-4 sm:grid-cols-2">
         {/* Costo por kilo */}
         <article className="card p-5">

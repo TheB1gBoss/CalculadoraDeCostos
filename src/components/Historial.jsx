@@ -1,8 +1,26 @@
 import { AlertTriangle, Calendar, Download, FileSpreadsheet, Trash2, Upload } from 'lucide-react'
 import { useRef } from 'react'
-import { calcularIndicadores } from '../lib/calculos.js'
 import { exportarWorkbook, importarWorkbook } from '../lib/excel.js'
-import { formatCLP, formatKilos, formatMes } from '../lib/formato.js'
+import { formatKilos, formatMes, formatReales } from '../lib/formato.js'
+
+const sum = (arr, get) => (arr || []).reduce((s, x) => s + (Number(get(x)) || 0), 0)
+
+/** Volumen de registros de un mes (bucket organizativo, sin costos derivados). */
+function resumenMes(mes = {}) {
+  const registros =
+    (mes.compras_bruto?.length || 0) +
+    (mes.pagos?.length || 0) +
+    (mes.banos_completados?.length || 0) +
+    (mes.llegadas_mercaderia_por_bloque?.length || 0) +
+    (mes.servicios_completados?.length || 0) +
+    (mes.pagos_aduana?.length || 0)
+  return {
+    registros,
+    compras: mes.compras_bruto?.length || 0,
+    kilosComprados: sum(mes.compras_bruto, (c) => c.kilos),
+    realesComprados: sum(mes.compras_bruto, (c) => c.total_reales),
+  }
+}
 
 export default function Historial({ estado }) {
   const { state, setState, mesActivo, mesesOrdenados, setMesActivo, eliminarMes } = estado
@@ -80,9 +98,8 @@ export default function Historial({ estado }) {
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2">
           {[...mesesOrdenados].reverse().map((key) => {
-            const ind = calcularIndicadores(state.meses[key])
+            const res = resumenMes(state.meses[key])
             const activo = key === mesActivo
-            const pos = ind.indicadorFabricacion >= 0
             return (
               <li
                 key={key}
@@ -127,14 +144,10 @@ export default function Historial({ estado }) {
                 </div>
 
                 <dl className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                  <KPI label="Costo / kg" value={formatCLP(ind.costoTotalPorKilo)} />
-                  <KPI label="Kilos totales" value={formatKilos(ind.kilos.total)} />
-                  <KPI
-                    label="Indicador"
-                    value={(pos ? '+' : '') + formatCLP(ind.indicadorFabricacion)}
-                    color={pos ? 'text-emerald-600' : 'text-red-600'}
-                  />
-                  <KPI label="TC pond." value={ind.tipoCambio ? ind.tipoCambio.toFixed(2) : '—'} />
+                  <KPI label="Registros" value={String(res.registros)} />
+                  <KPI label="Compras" value={String(res.compras)} />
+                  <KPI label="Kilos comprados" value={formatKilos(res.kilosComprados)} />
+                  <KPI label="Total R$ compras" value={formatReales(res.realesComprados)} />
                 </dl>
               </li>
             )

@@ -106,9 +106,52 @@ export function seedFromInitial(datos, mesKey = '2026-05') {
 export function loadOrSeed(datos, mesKey = '2026-05') {
   const existing = loadAll()
   if (existing && existing.meses && Object.keys(existing.meses).length) {
-    return existing
+    const reparado = repararFechas(existing)
+    if (reparado !== existing) saveAll(reparado)
+    return reparado
   }
-  const seeded = seedFromInitial(datos, mesKey)
+  const seeded = repararFechas(seedFromInitial(datos, mesKey))
   saveAll(seeded)
   return seeded
+}
+
+const CAMPOS_CON_FECHA = [
+  'compras_bruto',
+  'pagos',
+  'banos_completados',
+  'servicios_completados',
+  'pagos_aduana',
+]
+
+/**
+ * Repara fechas corruptas heredadas del Excel (años < 2000, típicamente
+ * '1900-01-01' por el serial de fecha mal exportado) reasignándolas a 2026.
+ * Idempotente: si no hay nada que arreglar, devuelve el mismo objeto.
+ */
+export function repararFechas(state) {
+  let cambiado = false
+  const meses = {}
+  Object.entries(state?.meses || {}).forEach(([k, mes]) => {
+    const nuevo = { ...mes }
+    CAMPOS_CON_FECHA.forEach((campo) => {
+      const arr = mes?.[campo]
+      if (!Array.isArray(arr)) return
+      let toco = false
+      const fixed = arr.map((r) => {
+        const m =
+          typeof r?.fecha === 'string' && r.fecha.match(/^(\d{4})(-\d{2}-\d{2})/)
+        if (m && Number(m[1]) < 2000) {
+          toco = true
+          return { ...r, fecha: `2026${m[2]}` }
+        }
+        return r
+      })
+      if (toco) {
+        nuevo[campo] = fixed
+        cambiado = true
+      }
+    })
+    meses[k] = nuevo
+  })
+  return cambiado ? { ...state, meses } : state
 }

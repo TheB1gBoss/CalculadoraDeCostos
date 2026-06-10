@@ -137,6 +137,46 @@ export function indicadorFabricacion(kilosCat, preciosPonderados, costoTotal) {
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */
+/* Agregado histórico                                                        */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+const CAMPOS_LISTA = [
+  'compras_bruto',
+  'pagos',
+  'banos_completados',
+  'llegadas_mercaderia_por_bloque',
+  'servicios_completados',
+  'pagos_aduana',
+]
+
+/**
+ * Une TODOS los meses en un único dataset agregado.
+ *
+ * Regla de negocio: los costos se calculan siempre sobre todo el histórico,
+ * nunca por mes. El "mes activo" es solo organizativo para la entrada de datos.
+ * Esta función concatena las listas de todos los meses; los precios ponderados
+ * (config de venta) NO se agregan aquí y se resuelven aparte.
+ */
+export function mergeMeses(meses = {}) {
+  const out = {
+    compras_bruto: [],
+    pagos: [],
+    banos_completados: [],
+    llegadas_mercaderia_por_bloque: [],
+    servicios_completados: [],
+    pagos_aduana: [],
+    costos_ponderados_por_kilo: {},
+  }
+  Object.values(meses || {}).forEach((mes) => {
+    if (!mes) return
+    CAMPOS_LISTA.forEach((campo) => {
+      if (Array.isArray(mes[campo])) out[campo].push(...mes[campo])
+    })
+  })
+  return out
+}
+
+/* ────────────────────────────────────────────────────────────────────────── */
 /* Cálculo agregado del mes                                                  */
 /* ────────────────────────────────────────────────────────────────────────── */
 

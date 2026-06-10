@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import datosIniciales from '../data/datos_iniciales.json'
-import { calcularIndicadores } from './calculos.js'
+import { calcularIndicadores, mergeMeses } from './calculos.js'
 import {
   deleteMes as storageDeleteMes,
   loadOrSeed,
@@ -26,7 +26,23 @@ export function useEstado() {
     [state.meses],
   )
 
-  const indicadores = useMemo(() => calcularIndicadores(mesData), [mesData])
+  // Los costos del negocio se calculan SIEMPRE sobre todo el histórico (todos
+  // los meses juntos). Los precios ponderados (config de venta) se toman del
+  // mes activo, que es la tarifa vigente.
+  const datosGlobales = useMemo(() => {
+    const merged = mergeMeses(state.meses)
+    merged.costos_ponderados_por_kilo =
+      mesData.costos_ponderados_por_kilo || merged.costos_ponderados_por_kilo
+    return merged
+  }, [state.meses, mesData])
+
+  const indicadores = useMemo(
+    () => calcularIndicadores(datosGlobales),
+    [datosGlobales],
+  )
+
+  const tieneDatos =
+    datosGlobales.compras_bruto.length > 0 || datosGlobales.pagos.length > 0
 
   const setMesActivo = useCallback((key) => {
     setState((s) => ({ ...s, mesActivo: key }))
@@ -70,6 +86,8 @@ export function useEstado() {
     mesActivo,
     mesData,
     mesesOrdenados,
+    datosGlobales,
+    tieneDatos,
     indicadores,
     setMesActivo,
     updateMes,

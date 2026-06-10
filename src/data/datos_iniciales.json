@@ -27,7 +27,7 @@
       "total_reales": 207235
     },
     {
-      "fecha": "1900-01-01",
+      "fecha": "2026-01-01",
       "detalle": "Enero",
       "kilos": 155.119,
       "total_reales": 106707
@@ -100,7 +100,7 @@
       "chilenos": 60040728
     },
     {
-      "fecha": "1900-01-01",
+      "fecha": "2026-01-01",
       "reales": 211488,
       "chilenos": 36052354
     },
@@ -255,7 +255,7 @@
       "total_reales": 19570.04
     },
     {
-      "fecha": "1900-01-01",
+      "fecha": "2026-01-01",
       "detalle": "Enero",
       "total_reales": 11710
     },

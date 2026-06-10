@@ -10,35 +10,31 @@ import {
 } from 'lucide-react'
 import Accordion from './Accordion.jsx'
 import EditableTable from './EditableTable.jsx'
-import NumberInput from './NumberInput.jsx'
 import {
   formatCLP,
   formatKilos,
   formatNumero,
   formatReales,
+  parseNumeroFlexible,
 } from '../lib/formato.js'
 
 export default function EntradaDatos({ estado }) {
-  const { datos, updateDatos } = estado
+  const { mesData, updateMes } = estado
 
-  const setField = (key) => (rows) => updateDatos({ [key]: rows })
+  const setField = (key) => (rows) => updateMes({ [key]: rows })
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-gray-500">
-        Todos los registros viven juntos. La fecha es solo un dato de cada fila;
-        no separa ni filtra los cálculos.
-      </p>
       {/* 1. Compras de bruto */}
       <Accordion
         title="Compras de bruto"
         subtitle="Compras de oro/plata en Brasil"
         icon={ShoppingCart}
         defaultOpen
-        badge={`${datos.compras_bruto?.length || 0}`}
+        badge={`${mesData.compras_bruto?.length || 0}`}
       >
         <EditableTable
-          rows={datos.compras_bruto || []}
+          rows={mesData.compras_bruto || []}
           onChange={setField('compras_bruto')}
           newRow={() => ({ fecha: '', detalle: '', kilos: 0, total_reales: 0 })}
           columns={[
@@ -51,19 +47,19 @@ export default function EntradaDatos({ estado }) {
             { key: 'kilos', format: formatKilos },
             { key: 'total_reales', format: formatReales },
           ]}
-          emptyText="Sin compras de bruto registradas."
+          emptyText="Sin compras de bruto este mes."
         />
       </Accordion>
 
       {/* 2. Pagos al exterior */}
       <Accordion
         title="Pagos al exterior"
-        subtitle="Cada pago ajusta el TC ponderado"
+        subtitle="Cada pago define el TC ponderado del mes"
         icon={Banknote}
-        badge={`${datos.pagos?.length || 0}`}
+        badge={`${mesData.pagos?.length || 0}`}
       >
         <EditableTable
-          rows={datos.pagos || []}
+          rows={mesData.pagos || []}
           onChange={setField('pagos')}
           newRow={() => ({ fecha: '', reales: 0, chilenos: 0 })}
           columns={[
@@ -75,9 +71,9 @@ export default function EntradaDatos({ estado }) {
             { key: 'reales', format: formatReales },
             { key: 'chilenos', format: formatCLP },
           ]}
-          emptyText="Sin pagos al exterior registrados."
+          emptyText="Sin pagos al exterior este mes."
         />
-        <PagosResumen pagos={datos.pagos || []} />
+        <PagosResumen pagos={mesData.pagos || []} />
       </Accordion>
 
       {/* 3. Baños completados */}
@@ -85,10 +81,10 @@ export default function EntradaDatos({ estado }) {
         title="Baños completados"
         subtitle="Procesamiento (valores en R$, se convierten a CLP)"
         icon={Droplet}
-        badge={`${datos.banos_completados?.length || 0}`}
+        badge={`${mesData.banos_completados?.length || 0}`}
       >
         <EditableTable
-          rows={datos.banos_completados || []}
+          rows={mesData.banos_completados || []}
           onChange={setField('banos_completados')}
           newRow={() => ({ fecha: '', detalle: '', kilos: 0, total_clp: 0 })}
           columns={[
@@ -101,7 +97,7 @@ export default function EntradaDatos({ estado }) {
             { key: 'kilos', format: formatKilos },
             { key: 'total_clp', format: formatReales },
           ]}
-          emptyText="Sin baños registrados."
+          emptyText="Sin baños este mes."
         />
       </Accordion>
 
@@ -110,10 +106,10 @@ export default function EntradaDatos({ estado }) {
         title="Llegadas de mercadería"
         subtitle="Bloques por embarque — kilos por categoría"
         icon={PackageCheck}
-        badge={`${datos.llegadas_mercaderia_por_bloque?.length || 0}`}
+        badge={`${mesData.llegadas_mercaderia_por_bloque?.length || 0}`}
       >
         <Llegadas
-          bloques={datos.llegadas_mercaderia_por_bloque || []}
+          bloques={mesData.llegadas_mercaderia_por_bloque || []}
           onChange={setField('llegadas_mercaderia_por_bloque')}
         />
       </Accordion>
@@ -123,7 +119,7 @@ export default function EntradaDatos({ estado }) {
         title="Servicios y aduana"
         subtitle="Servicios en R$ + pagos de aduana en CLP"
         icon={Wrench}
-        badge={`${(datos.servicios_completados?.length || 0) + (datos.pagos_aduana?.length || 0)}`}
+        badge={`${(mesData.servicios_completados?.length || 0) + (mesData.pagos_aduana?.length || 0)}`}
       >
         <div className="space-y-5">
           <div>
@@ -131,7 +127,7 @@ export default function EntradaDatos({ estado }) {
               Servicios completados (R$)
             </h3>
             <EditableTable
-              rows={datos.servicios_completados || []}
+              rows={mesData.servicios_completados || []}
               onChange={setField('servicios_completados')}
               newRow={() => ({ fecha: '', detalle: '', total_reales: 0 })}
               columns={[
@@ -140,7 +136,7 @@ export default function EntradaDatos({ estado }) {
                 { key: 'total_reales', label: 'Total R$', type: 'number', placeholder: '0,00' },
               ]}
               totals={[{ key: 'total_reales', format: formatReales }]}
-              emptyText="Sin servicios registrados."
+              emptyText="Sin servicios este mes."
             />
           </div>
 
@@ -149,7 +145,7 @@ export default function EntradaDatos({ estado }) {
               Pagos de aduana (CLP)
             </h3>
             <EditableTable
-              rows={datos.pagos_aduana || []}
+              rows={mesData.pagos_aduana || []}
               onChange={setField('pagos_aduana')}
               newRow={() => ({ fecha: '', detalle: '', kilos: 0, total_clp: 0 })}
               columns={[
@@ -162,7 +158,7 @@ export default function EntradaDatos({ estado }) {
                 { key: 'kilos', format: formatKilos },
                 { key: 'total_clp', format: formatCLP },
               ]}
-              emptyText="Sin pagos de aduana registrados."
+              emptyText="Sin pagos de aduana este mes."
             />
           </div>
         </div>
@@ -175,8 +171,8 @@ export default function EntradaDatos({ estado }) {
         icon={Boxes}
       >
         <PreciosPonderados
-          valores={datos.costos_ponderados_por_kilo || {}}
-          onChange={(obj) => updateDatos({ costos_ponderados_por_kilo: obj })}
+          valores={mesData.costos_ponderados_por_kilo || {}}
+          onChange={(obj) => updateMes({ costos_ponderados_por_kilo: obj })}
         />
       </Accordion>
     </div>
@@ -199,9 +195,9 @@ function Llegadas({ bloques, onChange }) {
   const addBloque = () =>
     onChange([...bloques, { MICRO: 0, CADENA: 0, 'ORO GF': 0 }])
 
-  const updateBloque = (idx, key, value) => {
+  const updateBloque = (idx, key, raw) => {
     const next = bloques.slice()
-    next[idx] = { ...next[idx], [key]: value }
+    next[idx] = { ...next[idx], [key]: parseNumeroFlexible(raw) }
     onChange(next)
   }
 
@@ -238,10 +234,12 @@ function Llegadas({ bloques, onChange }) {
                 <span className="block text-[10px] font-medium uppercase tracking-wide text-gray-500">
                   {cat}
                 </span>
-                <NumberInput
+                <input
+                  type="text"
+                  inputMode="decimal"
                   value={b[cat] ?? 0}
-                  onChange={(value) => updateBloque(idx, cat, value)}
-                  className="input text-right tabular-nums"
+                  onChange={(e) => updateBloque(idx, cat, e.target.value)}
+                  className="input"
                 />
               </label>
             ))}
@@ -273,14 +271,8 @@ function Llegadas({ bloques, onChange }) {
 }
 
 function PreciosPonderados({ valores, onChange }) {
-  // 'MICROZIRCON' es la clave histórica del Excel para MICRO.
-  const get = (k) =>
-    Number(valores[k] ?? (k === 'MICRO' ? valores.MICROZIRCON : 0)) || 0
-  const set = (k, value) => {
-    // Normaliza a las claves canónicas y descarta la histórica MICROZIRCON.
-    const { MICROZIRCON, ...rest } = valores
-    onChange({ ...rest, [k]: value })
-  }
+  const get = (k) => valores[k] ?? valores[k === 'MICRO' ? 'MICROZIRCON' : ''] ?? 0
+  const set = (k, raw) => onChange({ ...valores, [k]: parseNumeroFlexible(raw) })
 
   return (
     <div className="grid gap-3 sm:grid-cols-3">
@@ -288,10 +280,12 @@ function PreciosPonderados({ valores, onChange }) {
         <label key={cat} className="block">
           <span className="label">{cat}</span>
           <div className="relative">
-            <NumberInput
+            <input
+              type="text"
+              inputMode="decimal"
               value={get(cat)}
-              onChange={(value) => set(cat, value)}
-              className="input pr-12 text-right tabular-nums"
+              onChange={(e) => set(cat, e.target.value)}
+              className="input pr-12"
             />
             <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">
               /kg

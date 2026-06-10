@@ -48,13 +48,6 @@ export const formatPct = (n) => {
 /** ISO 'YYYY-MM-DD' → 'dd/mm/aaaa'. Si la fecha es inválida, devuelve el original. */
 export function formatFecha(iso) {
   if (!iso) return ''
-  // Parseo a nivel de string y construcción de Date LOCAL (no UTC) para evitar
-  // el corrimiento de un día en husos negativos como Chile.
-  const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/)
-  if (m) {
-    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
-    return fechaFormatter.format(d)
-  }
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return iso
   return fechaFormatter.format(d)
@@ -80,15 +73,56 @@ export function mesActualISO() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
+/**
+ * Convierte un número almacenado (float JS) al formato de input chileno para
+ * pre-poblar un campo editable: 54.05 → "54,05" ; 100711.23 → "100.711,23"
+ */
+export function formatearNumeroParaInput(n) {
+  if (n == null || n === '') return ''
+  const num = Number(n)
+  if (!Number.isFinite(num)) return ''
+  if (num === 0) return ''
+  return num.toLocaleString('es-CL', { maximumFractionDigits: 3, minimumFractionDigits: 0 })
+}
+
+/**
+ * Formatea un string de input numérico en tiempo real con separadores de miles (puntos)
+ * y decimal (coma): "100711" → "100.711", "100711,88" → "100.711,88"
+ */
+export function formatearInputNumero(raw) {
+  if (raw === '' || raw == null) return ''
+  const s = String(raw)
+  // Separar parte decimal (todo después de la última coma)
+  const commaIdx = s.lastIndexOf(',')
+  let intStr, decStr
+  if (commaIdx >= 0) {
+    intStr = s.slice(0, commaIdx).replace(/\D/g, '')
+    decStr = ',' + s.slice(commaIdx + 1).replace(/\D/g, '')
+  } else {
+    intStr = s.replace(/[^\d]/g, '')
+    decStr = ''
+  }
+  // Agregar puntos cada 3 dígitos en la parte entera
+  if (intStr.length > 3) {
+    intStr = intStr.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  }
+  return intStr + decStr
+}
+
 /** Parsea un input numérico tolerante a separadores chilenos ('1.234,56' o '1234.56'). */
 export function parseNumeroFlexible(input) {
   if (typeof input === 'number') return input
   if (!input) return 0
   const s = String(input).trim()
   if (!s) return 0
-  // Si trae coma decimal estilo chileno/brasileño: quitar puntos de miles y cambiar coma a punto.
+  // Estilo chileno con coma decimal: "1.234,56" → quitar puntos, cambiar coma
   if (s.includes(',') && s.lastIndexOf(',') > s.lastIndexOf('.')) {
     const n = Number(s.replace(/\./g, '').replace(',', '.'))
+    return Number.isFinite(n) ? n : 0
+  }
+  // Punto como separador de miles: "550.000" o "1.500.000"
+  if (s.includes('.') && /\.\d{3}(\.|$)/.test(s)) {
+    const n = Number(s.replace(/\./g, ''))
     return Number.isFinite(n) ? n : 0
   }
   const n = Number(s)

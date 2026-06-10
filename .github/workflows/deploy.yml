@@ -1,8 +1,7 @@
 name: Deploy a GitHub Pages
 
 # Compila la app y la publica en GitHub Pages usando el método oficial de
-# Actions (no depende de la rama gh-pages). Se ejecuta en cada push a main o
-# manualmente desde la pestaña Actions.
+# Actions. Se ejecuta en cada push a main o manualmente desde Actions.
 on:
   push:
     branches: [main]
@@ -13,7 +12,6 @@ permissions:
   pages: write
   id-token: write
 
-# Un solo despliegue a la vez.
 concurrency:
   group: pages
   cancel-in-progress: true
@@ -32,7 +30,6 @@ jobs:
       - run: npm ci
       - run: npm run build
 
-      # Configura Pages (y lo habilita en modo "GitHub Actions" si hiciera falta).
       - uses: actions/configure-pages@v5
         with:
           enablement: true

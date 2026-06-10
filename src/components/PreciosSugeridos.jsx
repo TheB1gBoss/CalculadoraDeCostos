@@ -12,9 +12,9 @@ const CATEGORIAS = [
 const MARGEN_DEFAULT = { MICRO: 0.2, CADENA: 0.25, 'ORO GF': 0.5 }
 
 export default function PreciosSugeridos({ estado }) {
-  const { indicadores, datos, state, setPreciosPonderados } = estado
+  const { indicadores, mesData, state, setPreciosPonderados } = estado
   const costo = indicadores.costoTotalPorKilo
-  const preciosPond = normalizarPorCategoria(datos.costos_ponderados_por_kilo || {})
+  const preciosPond = normalizarPorCategoria(mesData.costos_ponderados_por_kilo || {})
   const [margenes, setMargenes] = useState(MARGEN_DEFAULT)
 
   const setMargen = (cat, val) =>

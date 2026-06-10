@@ -2,16 +2,60 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes ticker {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-ticker {
+  animation: ticker 28s linear infinite;
+}
+.animate-ticker:hover {
+  animation-play-state: paused;
+}
+
 @layer base {
   html { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
-  body { @apply bg-gray-50 text-gray-900 antialiased; }
+  body { @apply bg-gray-50 text-gray-900 antialiased dark:bg-ray-bg dark:text-white; }
 }
 
 @layer components {
-  .card { @apply rounded-2xl border border-gray-200 bg-white shadow-sm; }
-  .btn-primary { @apply inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-brand-600 active:bg-brand-700 transition; }
-  .btn-secondary { @apply inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition; }
-  .btn-danger { @apply inline-flex items-center justify-center gap-2 rounded-xl bg-red-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-600 transition; }
-  .input { @apply w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20; }
-  .label { @apply block text-xs font-medium uppercase tracking-wide text-gray-500 mb-1; }
+  /* ── Cards ─────────────────────────────────────────────── */
+  .card {
+    @apply rounded-2xl border border-gray-200 bg-white shadow-sm
+           dark:border-ray-border dark:bg-ray-surface dark:shadow-none;
+  }
+
+  /* ── Botones ────────────────────────────────────────────── */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2
+           text-sm font-medium shadow-sm transition
+           bg-brand-500 text-white hover:bg-brand-600 active:bg-brand-700
+           dark:bg-ray-cyan dark:text-ray-bg dark:hover:brightness-110 dark:shadow-glow-sm;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2
+           text-sm font-medium transition
+           border-gray-300 bg-white text-gray-700 hover:bg-gray-50
+           dark:border-ray-border dark:bg-ray-surface dark:text-slate-300 dark:hover:bg-[#101f38];
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-3 py-1.5
+           text-xs font-medium transition
+           bg-red-500 text-white hover:bg-red-600;
+  }
+
+  /* ── Inputs ─────────────────────────────────────────────── */
+  .input {
+    @apply w-full rounded-lg border px-3 py-2 text-sm transition
+           border-gray-300 bg-white text-gray-900
+           focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20
+           dark:border-ray-border dark:bg-[#06101f] dark:text-white dark:placeholder-slate-600
+           dark:focus:border-ray-cyan dark:focus:ring-ray-cyan/20;
+  }
+
+  /* ── Label ──────────────────────────────────────────────── */
+  .label {
+    @apply block text-xs font-medium uppercase tracking-wide mb-1
+           text-gray-500 dark:text-slate-400;
+  }
 }

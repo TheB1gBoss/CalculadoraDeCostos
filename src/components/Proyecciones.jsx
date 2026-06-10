@@ -9,71 +9,36 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { calcularIndicadores, variacion } from '../lib/calculos.js'
+import { calcularIndicadores, promedio, variacion } from '../lib/calculos.js'
 import { formatCLP, formatMes, formatPct } from '../lib/formato.js'
 
-/** 'YYYY-MM-DD...' → 'YYYY-MM'. Descarta fechas corruptas (año < 2000). */
-function mesDe(fecha) {
-  if (typeof fecha !== 'string') return null
-  const m = fecha.match(/^(\d{4})-(\d{2})/)
-  if (!m || Number(m[1]) < 2000) return null
-  return `${m[1]}-${m[2]}`
-}
-
-const CAMPOS_CON_FECHA = [
-  'compras_bruto',
-  'pagos',
-  'banos_completados',
-  'servicios_completados',
-  'pagos_aduana',
-]
-
 export default function Proyecciones({ estado }) {
-  const { datos } = estado
+  const { state, mesActivo, mesesOrdenados } = estado
 
-  // Serie ACUMULADA: cada corte usa todos los registros con fecha <= ese mes.
-  // No es un costo "por mes": cada punto es el promedio histórico de TODO lo
-  // registrado hasta esa fecha. Solo sirve para ver la tendencia en el tiempo.
-  const serie = useMemo(() => {
-    const mesesSet = new Set()
-    CAMPOS_CON_FECHA.forEach((campo) => {
-      ;(datos[campo] || []).forEach((r) => {
-        const mm = mesDe(r.fecha)
-        if (mm) mesesSet.add(mm)
-      })
-    })
-    const mesesSerie = [...mesesSet].sort()
+  const serie = useMemo(
+    () =>
+      mesesOrdenados.map((key) => {
+        const ind = calcularIndicadores(state.meses[key])
+        return {
+          mes: key,
+          mesLabel: formatMes(key).replace(/ \d{4}$/, ''),
+          ...ind,
+        }
+      }),
+    [mesesOrdenados, state.meses],
+  )
 
-    return mesesSerie.map((M) => {
-      const hasta = (arr) => (arr || []).filter((r) => mesDe(r.fecha) <= M)
-      const parcial = {
-        compras_bruto: hasta(datos.compras_bruto),
-        pagos: hasta(datos.pagos),
-        banos_completados: hasta(datos.banos_completados),
-        servicios_completados: hasta(datos.servicios_completados),
-        pagos_aduana: hasta(datos.pagos_aduana),
-        llegadas_mercaderia_por_bloque: [],
-        costos_ponderados_por_kilo: datos.costos_ponderados_por_kilo,
-      }
-      const ind = calcularIndicadores(parcial)
-      return {
-        mes: M,
-        mesLabel: formatMes(M).replace(/ \d{4}$/, ''),
-        ...ind,
-      }
-    })
-  }, [datos])
+  const idxActual = serie.findIndex((s) => s.mes === mesActivo)
+  const actual = serie[idxActual]
+  const anterior = idxActual > 0 ? serie[idxActual - 1] : null
 
-  if (serie.length === 0) {
+  if (!actual) {
     return (
       <div className="card p-8 text-center text-sm text-gray-500">
-        Sin registros con fecha válida para construir la evolución histórica.
+        Selecciona un mes para ver proyecciones.
       </div>
     )
   }
-
-  const actual = serie[serie.length - 1]
-  const anterior = serie.length > 1 ? serie[serie.length - 2] : null
 
   const filas = [
     { key: 'costoTotalPorKilo', label: 'Costo total / kg' },
@@ -81,32 +46,41 @@ export default function Proyecciones({ estado }) {
     { key: 'banoPorKilo', label: 'Baño / kg' },
     { key: 'aduanaPorKilo', label: 'Aduana / kg' },
     { key: 'tipoCambio', label: 'TC ponderado', format: (v) => v.toFixed(2) },
+    { key: 'indicadorFabricacion', label: 'Indicador fabricación' },
   ]
 
   const alertas = []
   if (anterior) {
     filas.forEach((f) => {
-      if (f.key === 'tipoCambio') return
       const v = variacion(actual[f.key], anterior[f.key])
-      if (v.pct !== null && Math.abs(v.pct) >= 0.1) {
-        alertas.push({ label: f.label, pct: v.pct, dir: v.pct > 0 ? 'subió' : 'bajó' })
+      if (v.pct !== null && Math.abs(v.pct) >= 0.1 && f.key !== 'tipoCambio') {
+        alertas.push({
+          label: f.label,
+          pct: v.pct,
+          delta: v.delta,
+          dir: v.pct > 0 ? 'sube' : 'baja',
+        })
       }
     })
   }
 
+  // Predicción: promedio últimos 3 meses calculados (los anteriores al actual)
+  const ultimos3 = serie.slice(Math.max(0, idxActual - 2), idxActual + 1)
+  const prediccion = {
+    costoTotalPorKilo: promedio(ultimos3.map((s) => s.costoTotalPorKilo)),
+    brutoPorKilo: promedio(ultimos3.map((s) => s.brutoPorKilo)),
+    banoPorKilo: promedio(ultimos3.map((s) => s.banoPorKilo)),
+    aduanaPorKilo: promedio(ultimos3.map((s) => s.aduanaPorKilo)),
+  }
+
   return (
     <div className="space-y-4">
-      <p className="text-xs text-gray-500">
-        Evolución <span className="font-medium text-gray-700">acumulada</span> del
-        costo por kilo. Cada mes considera todas las compras, pagos y baños
-        registrados hasta esa fecha (promedio histórico, no el mes aislado).
-      </p>
-
       {/* Alertas */}
       {alertas.length > 0 && (
         <ul className="space-y-2">
           {alertas.map((a) => {
-            const malo = a.pct > 0 // un costo que sube es malo
+            const subio = a.pct > 0
+            const malo = subio && a.label !== 'Indicador fabricación' // subir el indicador es bueno
             const color = malo
               ? 'border-amber-200 bg-amber-50 text-amber-800'
               : 'border-emerald-200 bg-emerald-50 text-emerald-800'
@@ -117,8 +91,8 @@ export default function Proyecciones({ estado }) {
               >
                 <AlertTriangle size={16} aria-hidden />
                 <span>
-                  El costo acumulado de <strong>{a.label}</strong> {a.dir}{' '}
-                  {formatPct(Math.abs(a.pct))} al incorporar {formatMes(actual.mes)}.
+                  <strong>{a.label}</strong> {a.dir} {formatPct(Math.abs(a.pct))} vs el
+                  mes anterior.
                 </span>
               </li>
             )
@@ -126,12 +100,11 @@ export default function Proyecciones({ estado }) {
         </ul>
       )}
 
-      {/* Tabla comparativa: últimos dos cortes acumulados */}
+      {/* Tabla comparativa */}
       <section className="card overflow-hidden">
         <header className="border-b border-gray-100 px-4 py-3">
           <h2 className="text-sm font-semibold">
-            Acumulado a {formatMes(actual.mes)}
-            {anterior ? ` vs ${formatMes(anterior.mes)}` : ''}
+            {formatMes(actual.mes)} vs {anterior ? formatMes(anterior.mes) : 'sin mes anterior'}
           </h2>
         </header>
         <div className="overflow-x-auto">
@@ -142,10 +115,10 @@ export default function Proyecciones({ estado }) {
                   Indicador
                 </th>
                 <th scope="col" className="px-4 py-2 text-right text-xs font-medium uppercase tracking-wide text-gray-500">
-                  Antes
+                  Anterior
                 </th>
                 <th scope="col" className="px-4 py-2 text-right text-xs font-medium uppercase tracking-wide text-gray-500">
-                  Ahora
+                  Actual
                 </th>
                 <th scope="col" className="px-4 py-2 text-right text-xs font-medium uppercase tracking-wide text-gray-500">
                   Δ
@@ -159,21 +132,22 @@ export default function Proyecciones({ estado }) {
                 const vb = actual[f.key]
                 const v = variacion(vb, va)
                 const dir = v.pct === null ? 'flat' : v.pct > 0.001 ? 'up' : v.pct < -0.001 ? 'down' : 'flat'
-                // En costos, subir es malo (rojo) y bajar es bueno (verde).
+                const isInd = f.key === 'indicadorFabricacion'
+                const positiveIsGood = isInd ? true : false
                 const colorClass =
                   dir === 'flat'
                     ? 'text-gray-500'
-                    : dir === 'down'
+                    : (dir === 'up') === positiveIsGood
                       ? 'text-emerald-600'
                       : 'text-red-600'
                 const Icon = dir === 'flat' ? Minus : dir === 'up' ? TrendingUp : TrendingDown
                 return (
                   <tr key={f.key} className="border-t border-gray-100">
                     <td className="px-4 py-2 text-gray-700">{f.label}</td>
-                    <td className="px-4 py-2 text-right text-gray-500 tabular-nums">
+                    <td className="px-4 py-2 text-right text-gray-500">
                       {anterior ? fmt(va) : '—'}
                     </td>
-                    <td className="px-4 py-2 text-right font-medium text-gray-900 tabular-nums">
+                    <td className="px-4 py-2 text-right font-medium text-gray-900">
                       {fmt(vb)}
                     </td>
                     <td className={`px-4 py-2 text-right font-medium ${colorClass}`}>
@@ -190,13 +164,32 @@ export default function Proyecciones({ estado }) {
         </div>
       </section>
 
-      {/* Gráfico de evolución acumulada */}
+      {/* Predicción próximo mes */}
+      <section className="card p-5">
+        <h2 className="text-sm font-semibold">Predicción próximo mes</h2>
+        <p className="text-xs text-gray-500">Promedio simple de los últimos {ultimos3.length} {ultimos3.length === 1 ? 'mes' : 'meses'}.</p>
+        <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            ['Costo total / kg', prediccion.costoTotalPorKilo],
+            ['Bruto / kg', prediccion.brutoPorKilo],
+            ['Baño / kg', prediccion.banoPorKilo],
+            ['Aduana / kg', prediccion.aduanaPorKilo],
+          ].map(([label, value]) => (
+            <div key={label}>
+              <dt className="text-xs text-gray-500">{label}</dt>
+              <dd className="text-base font-semibold text-gray-900">{formatCLP(value)}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
+      {/* Gráfico de evolución */}
       <section className="card p-4">
-        <h2 className="text-sm font-semibold">Evolución del costo por kilo (acumulado)</h2>
+        <h2 className="text-sm font-semibold">Evolución del costo por kilo</h2>
         <div className="mt-3 h-72">
           {serie.length < 2 ? (
             <div className="flex h-full items-center justify-center text-sm text-gray-400">
-              Se necesitan registros en al menos 2 meses para graficar.
+              Se necesitan al menos 2 meses para graficar.
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
@@ -214,10 +207,38 @@ export default function Proyecciones({ estado }) {
                   formatter={(v) => formatCLP(v)}
                   contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 12 }}
                 />
-                <Line type="monotone" dataKey="costoTotalPorKilo" name="Total" stroke="#0066cc" strokeWidth={2.5} dot={{ r: 3 }} />
-                <Line type="monotone" dataKey="brutoPorKilo" name="Bruto" stroke="#10b981" strokeWidth={2} dot={{ r: 2 }} />
-                <Line type="monotone" dataKey="banoPorKilo" name="Baño" stroke="#f59e0b" strokeWidth={2} dot={{ r: 2 }} />
-                <Line type="monotone" dataKey="aduanaPorKilo" name="Aduana" stroke="#6366f1" strokeWidth={2} dot={{ r: 2 }} />
+                <Line
+                  type="monotone"
+                  dataKey="costoTotalPorKilo"
+                  name="Total"
+                  stroke="#0066cc"
+                  strokeWidth={2.5}
+                  dot={{ r: 3 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="brutoPorKilo"
+                  name="Bruto"
+                  stroke="#10b981"
+                  strokeWidth={2}
+                  dot={{ r: 2 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="banoPorKilo"
+                  name="Baño"
+                  stroke="#f59e0b"
+                  strokeWidth={2}
+                  dot={{ r: 2 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="aduanaPorKilo"
+                  name="Aduana"
+                  stroke="#6366f1"
+                  strokeWidth={2}
+                  dot={{ r: 2 }}
+                />
               </LineChart>
             </ResponsiveContainer>
           )}

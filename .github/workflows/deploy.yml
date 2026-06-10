@@ -1,22 +1,25 @@
 name: Deploy a GitHub Pages
 
-# Compila la app y publica el resultado en la rama gh-pages cada vez que se
-# actualiza main. También se puede lanzar manualmente desde la pestaña Actions.
+# Compila la app y la publica en GitHub Pages usando el método oficial de
+# Actions (no depende de la rama gh-pages). Se ejecuta en cada push a main o
+# manualmente desde la pestaña Actions.
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
-# Evita despliegues solapados si se empuja varias veces seguidas.
+# Un solo despliegue a la vez.
 concurrency:
-  group: pages-deploy
+  group: pages
   cancel-in-progress: true
 
 jobs:
-  build-deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,8 +32,21 @@ jobs:
       - run: npm ci
       - run: npm run build
 
-      - name: Publicar dist en gh-pages
-        uses: peaceiris/actions-gh-pages@v4
+      # Configura Pages (y lo habilita en modo "GitHub Actions" si hiciera falta).
+      - uses: actions/configure-pages@v5
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -8,6 +8,21 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <title>Calculadora Importaciones — Aravena SPA</title>
+    <script>
+      // Limpieza de versiones viejas: desregistra cualquier service worker
+      // heredado y borra cachés para evitar que el navegador sirva la versión
+      // anterior. Inofensivo si no hay nada que limpiar.
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function (rs) {
+          rs.forEach(function (r) { r.unregister() })
+        })
+      }
+      if (window.caches && caches.keys) {
+        caches.keys().then(function (ks) {
+          ks.forEach(function (k) { caches.delete(k) })
+        })
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

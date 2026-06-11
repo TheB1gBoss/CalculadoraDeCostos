@@ -13,7 +13,7 @@ import {
 const FIRESTORE_DOC = doc(db, 'calculadora', 'estado')
 
 export function useEstado() {
-  const [state, setState] = useState(() => loadOrSeed(datosIniciales))
+  const [state, setState] = useState(() => consolidar(loadOrSeed(datosIniciales)))
   const [synced, setSynced] = useState(false)
   const skipNextSave = useRef(false)
 
@@ -21,8 +21,11 @@ export function useEstado() {
   useEffect(() => {
     getDoc(FIRESTORE_DOC).then((snap) => {
       if (snap.exists()) {
-        const data = snap.data()
-        skipNextSave.current = true
+        const raw = snap.data()
+        const data = consolidar(raw)
+        // Si la consolidación cambió algo (había varios meses), guardarlo de
+        // vuelta en la nube; si no, evitar la reescritura redundante.
+        skipNextSave.current = data === raw
         setState(data)
         saveAll(data)
       }
@@ -101,4 +104,28 @@ function vacioMes(costosBase) {
     costos_ponderados_por_kilo:
       costosBase || { MICRO: 570000, CADENA: 405000, 'ORO GF': 1500000 },
   }
+}
+
+/**
+ * Fusiona TODOS los meses en un único conjunto. La fecha de cada registro es
+ * solo un dato de la fila; no se separa por mes. Conserva todos los registros
+ * (los concatena) y usa los precios ponderados del mes activo (o el primero
+ * que tenga). Devuelve el mismo objeto si ya hay un solo mes (no-op).
+ */
+function consolidar(state) {
+  const meses = state?.meses || {}
+  const keys = Object.keys(meses)
+  if (keys.length <= 1) return state
+
+  const merged = mergeMeses(meses)
+  const tienePrecios = (c) => c && Object.keys(c).length > 0
+  const activo = meses[state.mesActivo]
+  merged.costos_ponderados_por_kilo =
+    (tienePrecios(activo?.costos_ponderados_por_kilo) && activo.costos_ponderados_por_kilo) ||
+    keys.map((k) => meses[k]?.costos_ponderados_por_kilo).find(tienePrecios) ||
+    { MICRO: 570000, CADENA: 405000, 'ORO GF': 1500000 }
+
+  // Conserva el bucket donde vive la data real si existe; si no, el primero.
+  const key = meses['2026-05'] ? '2026-05' : keys.sort()[0]
+  return { ...state, meses: { [key]: merged }, mesActivo: key }
 }

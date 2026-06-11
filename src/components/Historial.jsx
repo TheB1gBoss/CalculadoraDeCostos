@@ -434,11 +434,9 @@ export default function Historial({ estado }) {
           {toast}
         </div>
       )}
-      <MesSelector mesesOrdenados={mesesOrdenados} mesActivo={mesActivo} setMesActivo={setMesActivo} />
-
       <div className="space-y-3">
         <h2 className="px-1 text-xs font-bold uppercase tracking-widest text-slate-500">
-          Registros — {formatMes(mesActivo)}
+          Registros
         </h2>
         {SECCIONES.map((sec) => (
           <SeccionCategoria

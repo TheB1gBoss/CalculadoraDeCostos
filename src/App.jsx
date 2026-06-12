@@ -208,7 +208,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => exportarCSV(estado.state, estado.mesActivo)}
-            className="rounded-xl p-2 text-gray-500 hover:bg-gray-100 dark:text-slate-400 dark:hover:bg-[#101f38] transition"
+            className="rounded-xl p-2 text-gray-500 hover:bg-gray-100 dark:text-slate-400 dark:hover:bg-[#1a1f29] transition"
             aria-label="Exportar CSV"
             title="Exportar mes activo a CSV"
           >
@@ -217,7 +217,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => setDark((d) => !d)}
-            className="rounded-xl p-2 text-gray-500 hover:bg-gray-100 dark:text-slate-400 dark:hover:bg-[#101f38] transition"
+            className="rounded-xl p-2 text-gray-500 hover:bg-gray-100 dark:text-slate-400 dark:hover:bg-[#1a1f29] transition"
             aria-label="Cambiar tema"
           >
             {dark ? <Sun size={18} /> : <Moon size={18} />}

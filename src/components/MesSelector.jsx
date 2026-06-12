@@ -7,10 +7,10 @@ export default function MesSelector({ mesActivo, mesesOrdenados, onChange, onCre
   const next = idx >= 0 && idx < mesesOrdenados.length - 1 ? mesesOrdenados[idx + 1] : null
 
   return (
-    <div className="flex items-center justify-between gap-2 rounded-2xl border border-gray-200 bg-white p-2 shadow-sm dark:border-ray-border dark:bg-[#06101f] dark:shadow-none">
+    <div className="flex items-center justify-between gap-2 rounded-2xl border border-gray-200 bg-white p-2 shadow-sm dark:border-ray-border dark:bg-[#0c0f14] dark:shadow-none">
       <button
         type="button"
-        className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-30 dark:text-slate-400 dark:hover:bg-[#101f38]"
+        className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-30 dark:text-slate-400 dark:hover:bg-[#1a1f29]"
         disabled={!prev}
         onClick={() => prev && onChange(prev)}
         aria-label="Mes anterior"
@@ -31,7 +31,7 @@ export default function MesSelector({ mesActivo, mesesOrdenados, onChange, onCre
 
       <button
         type="button"
-        className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-30 dark:text-slate-400 dark:hover:bg-[#101f38]"
+        className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-30 dark:text-slate-400 dark:hover:bg-[#1a1f29]"
         disabled={!next}
         onClick={() => next && onChange(next)}
         aria-label="Mes siguiente"

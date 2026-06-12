@@ -8,7 +8,7 @@ export default function Accordion({ title, subtitle, icon: Icon, defaultOpen = f
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-gray-50 dark:hover:bg-[#101f38]"
+        className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-gray-50 dark:hover:bg-[#1a1f29]"
         aria-expanded={open}
       >
         {Icon && (

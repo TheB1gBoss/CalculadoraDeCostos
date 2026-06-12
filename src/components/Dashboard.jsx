@@ -4,9 +4,9 @@ import { calcularIndicadores, MERMA_FACTOR, normalizarPorCategoria, variacion } 
 import { formatCLP, formatFecha, formatKilos, formatNumero, formatPct, formatReales } from '../lib/formato.js'
 
 const CAT_COLORS = {
-  MICRO:    { dark: '#00d4ff', text: 'text-blue-400'    },
+  MICRO:    { dark: '#3fcbe0', text: 'text-blue-400'    },
   CADENA:   { dark: '#34d399', text: 'text-emerald-400' },
-  'ORO GF': { dark: '#fbbf24', text: 'text-amber-400'   },
+  'ORO GF': { dark: '#e3c05a', text: 'text-amber-400'   },
 }
 
 
@@ -202,15 +202,15 @@ const precios = normalizarPorCategoria(mesData.costos_ponderados_por_kilo || {})
             <div className="h-44">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={tcSerie} margin={{ top: 4, right: 4, left: -14, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#152338"/>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#262d37"/>
                   <XAxis dataKey="fecha" tick={{ fontSize: 9, fill: '#475569' }} tickFormatter={(v) => v?.slice(5)} interval="preserveStartEnd"/>
                   <YAxis tick={{ fontSize: 9, fill: '#475569' }} tickFormatter={(v) => formatNumero(v, 0)} domain={['auto','auto']}/>
-                  <Tooltip contentStyle={{ borderRadius: 10, background: '#0b1628', border: '1px solid #152338', fontSize: 11, color: '#e2e8f0' }}
+                  <Tooltip contentStyle={{ borderRadius: 10, background: '#13181f', border: '1px solid #262d37', fontSize: 11, color: '#e2e8f0' }}
                     formatter={(v) => [formatNumero(v, 2) + ' CLP/R$', 'TC']} labelFormatter={(v) => v}/>
-                  {tipoCambio > 0 && <ReferenceLine y={tipoCambio} stroke="#00d4ff" strokeDasharray="4 4"
-                    label={{ value: 'pond.', fill: '#00d4ff', fontSize: 8, position: 'insideTopRight' }}/>}
-                  <Line type="monotone" dataKey="tc" stroke="#00d4ff" strokeWidth={2}
-                    dot={{ r: 2.5, fill: '#00d4ff', strokeWidth: 0 }} activeDot={{ r: 4 }}/>
+                  {tipoCambio > 0 && <ReferenceLine y={tipoCambio} stroke="#3fcbe0" strokeDasharray="4 4"
+                    label={{ value: 'pond.', fill: '#3fcbe0', fontSize: 8, position: 'insideTopRight' }}/>}
+                  <Line type="monotone" dataKey="tc" stroke="#3fcbe0" strokeWidth={2}
+                    dot={{ r: 2.5, fill: '#3fcbe0', strokeWidth: 0 }} activeDot={{ r: 4 }}/>
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -269,8 +269,8 @@ const precios = normalizarPorCategoria(mesData.costos_ponderados_por_kilo || {})
             <p className="text-xl font-bold tabular-nums text-amber-300 mb-4">{costoOroPorKilo > 0 ? formatCLP(costoOroPorKilo) : '—'}</p>
             <div className="space-y-3">
               {[
-                { label: 'Bruto',  val: brutoPorKilo,   color: '#92400e', total: costoOroPorKilo },
-                { label: 'Baño',   val: banoOroPorKilo, color: '#fbbf24', total: costoOroPorKilo },
+                { label: 'Bruto',  val: brutoPorKilo,   color: '#8a6a22', total: costoOroPorKilo },
+                { label: 'Baño',   val: banoOroPorKilo, color: '#e3c05a', total: costoOroPorKilo },
                 { label: 'Aduana', val: aduanaPorKilo,  color: '#78716c', total: costoOroPorKilo },
               ].map(({ label, val, color, total }) => {
                 const pct = total > 0 ? (val / total) * 100 : 0
@@ -402,7 +402,7 @@ const precios = normalizarPorCategoria(mesData.costos_ponderados_por_kilo || {})
                       {dataPie.map(d => <Cell key={d.name} fill={CAT_COLORS[d.name].dark}/>)}
                     </Pie>
                     <Tooltip formatter={(v) => [formatKilos(v),'']}
-                      contentStyle={{ borderRadius:10, background:'#0b1628', border:'1px solid #152338', fontSize:11, color:'#e2e8f0' }}/>
+                      contentStyle={{ borderRadius:10, background:'#13181f', border:'1px solid #262d37', fontSize:11, color:'#e2e8f0' }}/>
                     <Legend iconSize={7} wrapperStyle={{ fontSize:10 }} verticalAlign="bottom" height={24}/>
                   </PieChart>
                 </ResponsiveContainer>
@@ -575,7 +575,7 @@ function ComprasAnalisis({ compras, ponderado, min, max, totalR$, totalKg, histo
                     {label}
                   </span>
                   <div className="flex-1 h-1 rounded-full bg-ray-border overflow-hidden">
-                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: esActivo ? '#00d4ff' : '#1e3a5a' }} />
+                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: esActivo ? '#3fcbe0' : '#1e3a5a' }} />
                   </div>
                   <span className={`w-14 shrink-0 text-right text-[10px] tabular-nums ${esActivo ? 'text-ray-cyan font-semibold' : 'text-slate-500'}`}>
                     {formatNumero(rPorKg, 2)}

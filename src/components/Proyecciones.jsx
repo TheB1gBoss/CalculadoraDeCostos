@@ -227,7 +227,7 @@ export default function Proyecciones({ estado }) {
                   type="monotone"
                   dataKey="banoPorKilo"
                   name="Baño"
-                  stroke="#f59e0b"
+                  stroke="#d4af37"
                   strokeWidth={2}
                   dot={{ r: 2 }}
                 />

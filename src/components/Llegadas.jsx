@@ -2,8 +2,8 @@ import { PackageCheck, Plus, Trash2 } from 'lucide-react'
 import { formatCLP, formatKilos, parseNumeroFlexible } from '../lib/formato.js'
 
 const CATS = ['MICRO', 'CADENA', 'ORO GF']
-const COLORS = { MICRO: '#0066cc', CADENA: '#10b981', 'ORO GF': '#f59e0b' }
-const DARK_COLORS = { MICRO: '#00d4ff', CADENA: '#34d399', 'ORO GF': '#fbbf24' }
+const COLORS = { MICRO: '#0066cc', CADENA: '#10b981', 'ORO GF': '#d4af37' }
+const DARK_COLORS = { MICRO: '#3fcbe0', CADENA: '#34d399', 'ORO GF': '#e3c05a' }
 
 export default function Llegadas({ estado }) {
   const { mesData, updateMes, indicadores } = estado

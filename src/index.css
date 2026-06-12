@@ -36,7 +36,7 @@
     @apply inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2
            text-sm font-medium transition
            border-gray-300 bg-white text-gray-700 hover:bg-gray-50
-           dark:border-ray-border dark:bg-ray-surface dark:text-slate-300 dark:hover:bg-[#101f38];
+           dark:border-ray-border dark:bg-ray-surface dark:text-slate-300 dark:hover:bg-[#1a1f29];
   }
   .btn-danger {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-3 py-1.5
@@ -49,7 +49,7 @@
     @apply w-full rounded-lg border px-3 py-2 text-sm transition
            border-gray-300 bg-white text-gray-900
            focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20
-           dark:border-ray-border dark:bg-[#06101f] dark:text-white dark:placeholder-slate-600
+           dark:border-ray-border dark:bg-[#0c0f14] dark:text-white dark:placeholder-slate-600
            dark:focus:border-ray-cyan dark:focus:ring-ray-cyan/20;
   }
 

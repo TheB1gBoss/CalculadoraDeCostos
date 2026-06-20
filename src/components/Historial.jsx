@@ -128,151 +128,108 @@ function EditForm({ skey, form, onChange, onConfirm, onUndo }) {
   )
 }
 
-/* ── Chip de fecha ── */
-function DateChip({ fecha }) {
-  if (!fecha) return null
+/* ── Helpers numéricos ── */
+const num = (v) => (typeof v === 'number' ? v : parseFloat(v) || 0)
+const sumKey = (rows, k) => rows.reduce((a, r) => a + num(r[k]), 0)
+const dash = <span className="text-slate-600">—</span>
+
+// Normaliza baños en formato antiguo (tipo/kilos/total_clp) al esquema nuevo
+function normBano(r) {
+  const esNuevo = r.plata_kilos != null || r.plata_reales != null
+  return {
+    plata_kilos:  esNuevo ? num(r.plata_kilos)  : (r.tipo !== 'oro' ? num(r.kilos)     : 0),
+    plata_reales: esNuevo ? num(r.plata_reales) : (r.tipo !== 'oro' ? num(r.total_clp) : 0),
+    oro_kilos:    esNuevo ? num(r.oro_kilos)    : (r.tipo === 'oro' ? num(r.kilos)     : 0),
+    oro_reales:   esNuevo ? num(r.oro_reales)   : (r.tipo === 'oro' ? num(r.total_clp) : 0),
+  }
+}
+
+function MetalCell({ kilos, reales, tone }) {
+  if (!(kilos > 0) && !(reales > 0)) return dash
+  const amtCls = tone === 'oro' ? 'text-amber-300' : 'text-cyan-300'
   return (
-    <span className="shrink-0 rounded-md bg-ray-border px-2 py-0.5 font-mono text-[10px] text-slate-400">
-      {formatFecha(fecha)}
-    </span>
-  )
-}
-
-/* ── Botones de acción ── */
-function RowActions({ onEdit, onDelete }) {
-  return (
-    <div className="flex shrink-0 items-center gap-0.5">
-      <button type="button" onClick={onEdit}
-        className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-[10px] font-semibold text-slate-500 hover:bg-ray-border hover:text-ray-cyan transition-colors">
-        <Pencil size={10} /> Editar
-      </button>
-      <button type="button" onClick={onDelete}
-        className="rounded-lg p-1.5 text-slate-600 hover:bg-red-900/20 hover:text-red-400 transition-colors"
-        aria-label="Eliminar">
-        <Trash2 size={13} />
-      </button>
+    <div className="leading-tight">
+      {kilos > 0  && <div className="text-slate-400">{formatKilos(kilos)}</div>}
+      {reales > 0 && <div className={`font-semibold ${amtCls}`}>{formatReales(reales)}</div>}
     </div>
   )
 }
 
-/* ── Contenido de cada fila (sin botones) ── */
-function RowContent({ skey, r }) {
-  if (skey === 'compras_bruto') {
-    const rPorKg = r.kilos > 0 && r.total_reales > 0 ? r.total_reales / r.kilos : 0
-    return (
-      <div className="flex-1 min-w-0 px-1 space-y-0.5">
-        <div className="flex items-center gap-2 flex-wrap">
-          <DateChip fecha={r.fecha} />
-          {r.total_reales > 0 && <span className="ml-auto font-semibold text-sm text-blue-300">{formatReales(r.total_reales)}</span>}
-        </div>
-        <div className="flex items-center gap-2 pl-0.5">
-          <span className="text-sm text-slate-200 break-words">{r.detalle || '—'}</span>
-          <div className="ml-auto shrink-0 flex items-center gap-1.5">
-            {r.kilos > 0 && <span className="text-xs text-slate-500">{formatKilos(r.kilos)}</span>}
-            {rPorKg > 0 && (
-              <span className="rounded-md bg-ray-border px-1.5 py-0.5 text-[10px] font-semibold text-slate-400 whitespace-nowrap">
-                {new Intl.NumberFormat('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(rPorKg)} R$/kg
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-    )
-  }
-  if (skey === 'pagos') {
-    const tc = r.reales ? (r.chilenos / r.reales).toFixed(2) : null
-    return (
-      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-1 px-1">
-        <DateChip fecha={r.fecha} />
-        {r.reales > 0 && <span className="font-medium text-sm text-emerald-300">{formatReales(r.reales)}</span>}
-        {r.reales > 0 && r.chilenos > 0 && <span className="text-slate-600 text-xs">→</span>}
-        {r.chilenos > 0 && <span className="font-medium text-sm text-white">{formatCLP(r.chilenos)}</span>}
-        {tc && <span className="ml-auto text-xs text-slate-500">TC {tc}</span>}
-      </div>
-    )
-  }
-  if (skey === 'servicios_completados') return (
-    <div className="flex-1 min-w-0 px-1 space-y-0.5">
-      <div className="flex items-center gap-2 flex-wrap">
-        <DateChip fecha={r.fecha} />
-        {r.total_reales > 0 && <span className="ml-auto font-semibold text-sm text-purple-300">{formatReales(r.total_reales)}</span>}
-      </div>
-      <div className="pl-0.5">
-        <span className="text-sm text-slate-200 break-words">{r.detalle || '—'}</span>
-      </div>
-    </div>
-  )
-  if (skey === 'pagos_aduana') return (
-    <div className="flex-1 min-w-0 px-1 space-y-0.5">
-      <div className="flex items-center gap-2 flex-wrap">
-        <DateChip fecha={r.fecha} />
-        {r.total_clp > 0 && <span className="ml-auto font-semibold text-sm text-orange-300">{formatCLP(r.total_clp)}</span>}
-      </div>
-      {r.kilos > 0 && (
-        <div className="pl-0.5">
-          <span className="text-xs text-slate-500">{formatKilos(r.kilos)}</span>
-        </div>
-      )}
-    </div>
-  )
-  if (skey === 'banos_completados') {
-    // Normalizar formato antiguo al nuevo esquema para mostrar igual
-    const esNuevo = r.plata_kilos != null || r.plata_reales != null
-    const plata_kilos   = esNuevo ? r.plata_kilos   : (r.tipo !== 'oro' ? r.kilos     : 0)
-    const plata_reales  = esNuevo ? r.plata_reales  : (r.tipo !== 'oro' ? r.total_clp : 0)
-    const oro_kilos     = esNuevo ? r.oro_kilos     : (r.tipo === 'oro' ? r.kilos     : 0)
-    const oro_reales    = esNuevo ? r.oro_reales    : (r.tipo === 'oro' ? r.total_clp : 0)
-    return (
-      <div className="flex-1 min-w-0 px-1 space-y-1.5">
-        <DateChip fecha={r.fecha} />
-        <div className="flex gap-2">
-          {(plata_kilos > 0 || plata_reales > 0) && (
-            <div className="flex-1 rounded-lg bg-slate-400/10 border border-slate-400/20 px-2 py-1.5">
-              <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-0.5">PLATA</div>
-              {plata_kilos > 0 && <div className="text-xs text-slate-300">{formatKilos(plata_kilos)}</div>}
-              {plata_reales > 0 && <div className="text-sm font-semibold text-cyan-300">{formatReales(plata_reales)}</div>}
-            </div>
-          )}
-          {(oro_kilos > 0 || oro_reales > 0) && (
-            <div className="flex-1 rounded-lg bg-amber-500/10 border border-amber-500/20 px-2 py-1.5">
-              <div className="text-[10px] font-bold uppercase tracking-wide text-amber-500 mb-0.5">ORO</div>
-              {oro_kilos > 0 && <div className="text-xs text-slate-300">{formatKilos(oro_kilos)}</div>}
-              {oro_reales > 0 && <div className="text-sm font-semibold text-amber-300">{formatReales(oro_reales)}</div>}
-            </div>
-          )}
-        </div>
-      </div>
-    )
-  }
-  if (skey === 'llegadas_mercaderia_por_bloque') {
-    const total = (r.MICRO || 0) + (r.CADENA || 0) + (r['ORO GF'] || 0)
-    const cats = [['MICRO', r.MICRO, 'text-blue-400'], ['CADENA', r.CADENA, 'text-emerald-400'], ['ORO GF', r['ORO GF'], 'text-amber-400']].filter(([, val]) => (val || 0) > 0)
-    return (
-      <div className="flex-1 min-w-0 px-1 space-y-1.5">
-        <div className="flex items-center gap-2">
-          <DateChip fecha={r.fecha} />
-          {total > 0 && <span className="ml-auto text-xs text-slate-400">{formatKilos(total)} bruto</span>}
-        </div>
-        {cats.length > 0 && (
-          <div className={`grid gap-2 ${cats.length === 3 ? 'grid-cols-3' : cats.length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-            {cats.map(([cat, val, color]) => (
-              <div key={cat} className="rounded-lg bg-ray-border/60 px-1.5 py-1.5 text-center">
-                <div className="text-[9px] uppercase tracking-wide text-slate-500 mb-0.5">{cat}</div>
-                <div className={`text-xs font-semibold whitespace-nowrap ${color}`}>{formatKilos(val)}</div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    )
-  }
-  return null
+/* ── Columnas por categoría (tabla compacta) ──
+   cell: contenido por fila · foot: total de la columna       */
+const COLUMNS = {
+  compras_bruto: [
+    { label: 'Fecha',     align: 'left',  cell: (r) => formatFecha(r.fecha) },
+    { label: 'Proveedor', align: 'left',  strong: true, grow: true, cell: (r) => r.detalle || dash },
+    { label: 'Kg',        align: 'right', cell: (r) => (r.kilos > 0 ? formatKilos(r.kilos) : dash),
+      foot: (rows) => formatKilos(sumKey(rows, 'kilos')) },
+    { label: 'Total R$',  align: 'right', accent: true, cell: (r) => (r.total_reales > 0 ? formatReales(r.total_reales) : dash),
+      foot: (rows) => formatReales(sumKey(rows, 'total_reales')) },
+  ],
+  pagos: [
+    { label: 'Fecha', align: 'left',  cell: (r) => formatFecha(r.fecha) },
+    { label: 'R$',    align: 'right', cell: (r) => (r.reales > 0 ? formatReales(r.reales) : dash),
+      foot: (rows) => formatReales(sumKey(rows, 'reales')) },
+    { label: 'CLP',   align: 'right', accent: true, cell: (r) => (r.chilenos > 0 ? formatCLP(r.chilenos) : dash),
+      foot: (rows) => formatCLP(sumKey(rows, 'chilenos')) },
+    { label: 'TC',    align: 'right', cell: (r) => (r.reales ? (r.chilenos / r.reales).toFixed(2) : dash) },
+  ],
+  servicios_completados: [
+    { label: 'Fecha',    align: 'left',  cell: (r) => formatFecha(r.fecha) },
+    { label: 'Detalle',  align: 'left',  strong: true, grow: true, cell: (r) => r.detalle || dash },
+    { label: 'Total R$', align: 'right', accent: true, cell: (r) => (r.total_reales > 0 ? formatReales(r.total_reales) : dash),
+      foot: (rows) => formatReales(sumKey(rows, 'total_reales')) },
+  ],
+  pagos_aduana: [
+    { label: 'Fecha',     align: 'left',  cell: (r) => formatFecha(r.fecha) },
+    { label: 'Kg',        align: 'right', cell: (r) => (r.kilos > 0 ? formatKilos(r.kilos) : dash),
+      foot: (rows) => formatKilos(sumKey(rows, 'kilos')) },
+    { label: 'Total CLP', align: 'right', accent: true, cell: (r) => (r.total_clp > 0 ? formatCLP(r.total_clp) : dash),
+      foot: (rows) => formatCLP(sumKey(rows, 'total_clp')) },
+  ],
+  banos_completados: [
+    { label: 'Fecha', align: 'left',  cell: (r) => formatFecha(r.fecha) },
+    { label: 'Plata', align: 'right',
+      cell: (r) => { const b = normBano(r); return <MetalCell kilos={b.plata_kilos} reales={b.plata_reales} tone="plata" /> },
+      foot: (rows) => <MetalCell tone="plata"
+        kilos={rows.reduce((a, r) => a + normBano(r).plata_kilos, 0)}
+        reales={rows.reduce((a, r) => a + normBano(r).plata_reales, 0)} /> },
+    { label: 'Oro', align: 'right',
+      cell: (r) => { const b = normBano(r); return <MetalCell kilos={b.oro_kilos} reales={b.oro_reales} tone="oro" /> },
+      foot: (rows) => <MetalCell tone="oro"
+        kilos={rows.reduce((a, r) => a + normBano(r).oro_kilos, 0)}
+        reales={rows.reduce((a, r) => a + normBano(r).oro_reales, 0)} /> },
+  ],
+  llegadas_mercaderia_por_bloque: [
+    { label: 'Fecha',  align: 'left',  cell: (r) => formatFecha(r.fecha) },
+    { label: 'MICRO',  align: 'right', cell: (r) => ((r.MICRO || 0) > 0 ? formatKilos(r.MICRO) : dash),
+      foot: (rows) => formatKilos(sumKey(rows, 'MICRO')) },
+    { label: 'CADENA', align: 'right', cell: (r) => ((r.CADENA || 0) > 0 ? formatKilos(r.CADENA) : dash),
+      foot: (rows) => formatKilos(sumKey(rows, 'CADENA')) },
+    { label: 'ORO GF', align: 'right', accent: true, cell: (r) => ((r['ORO GF'] || 0) > 0 ? formatKilos(r['ORO GF']) : dash),
+      foot: (rows) => formatKilos(sumKey(rows, 'ORO GF')) },
+  ],
 }
 
-/* ── Sección por categoría (colapsable) ── */
+/* Total resumen para la cabecera de cada categoría */
+function resumenTotal(key, rows) {
+  switch (key) {
+    case 'compras_bruto':         return formatReales(sumKey(rows, 'total_reales'))
+    case 'pagos':                 return formatCLP(sumKey(rows, 'chilenos'))
+    case 'servicios_completados': return formatReales(sumKey(rows, 'total_reales'))
+    case 'pagos_aduana':          return formatCLP(sumKey(rows, 'total_clp'))
+    case 'banos_completados':     return formatReales(rows.reduce((a, r) => { const b = normBano(r); return a + b.plata_reales + b.oro_reales }, 0))
+    case 'llegadas_mercaderia_por_bloque': return formatKilos(sumKey(rows, 'MICRO') + sumKey(rows, 'CADENA') + sumKey(rows, 'ORO GF'))
+    default: return null
+  }
+}
+
+/* ── Sección por categoría (tabla compacta, colapsable) ── */
 function SeccionCategoria({ seccion, entradas, editing, editForm, onEditStart, onEditChange, onEditConfirm, onEditUndo, onDelete }) {
   const { key, label, accent } = seccion
   const ac = AC[accent]
+  const cols = COLUMNS[key] || []
+  const hasFoot = cols.some((c) => c.foot)
   // Ordenar por fecha ascendente; guardar índice original para edición/borrado
   const entradasConIdx = entradas.map((r, idx) => ({ r, idx }))
   entradasConIdx.sort((a, b) => (a.r.fecha || '') < (b.r.fecha || '') ? -1 : (a.r.fecha || '') > (b.r.fecha || '') ? 1 : 0)
@@ -284,15 +241,18 @@ function SeccionCategoria({ seccion, entradas, editing, editForm, onEditStart, o
       <button
         type="button"
         onClick={() => count > 0 && setOpen((o) => !o)}
-        className={`flex w-full items-center justify-between px-4 py-3 text-left transition-colors ${count > 0 ? 'hover:bg-ray-border/30' : 'cursor-default'}`}
+        className={`flex w-full items-center justify-between gap-2 px-4 py-3 text-left transition-colors ${count > 0 ? 'hover:bg-ray-border/30' : 'cursor-default'}`}
       >
-        <div className="flex items-center gap-2">
-          <span className={`h-2 w-2 rounded-full ${ac.dot}`} />
-          <h3 className={`text-xs font-bold uppercase tracking-wide ${ac.head}`}>{label}</h3>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className={`h-2 w-2 shrink-0 rounded-full ${ac.dot}`} />
+          <h3 className={`truncate text-xs font-bold uppercase tracking-wide ${ac.head}`}>{label}</h3>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
+          {count > 0 && (
+            <span className="text-xs font-semibold tabular-nums text-slate-300">{resumenTotal(key, entradas)}</span>
+          )}
           <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${count > 0 ? ac.badge : 'bg-ray-border text-slate-600'}`}>
-            {count === 0 ? 'Sin registros' : `${count} ${count === 1 ? 'entrada' : 'entradas'}`}
+            {count === 0 ? 'Sin registros' : count}
           </span>
           {count > 0 && (
             <ChevronDown size={14} className={`shrink-0 text-slate-500 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
@@ -301,32 +261,70 @@ function SeccionCategoria({ seccion, entradas, editing, editForm, onEditStart, o
       </button>
 
       {open && count > 0 && (
-        <div className="space-y-1 px-2 pb-2 border-t border-ray-border/50 pt-1">
-          {entradasConIdx.map(({ r, idx }) => {
-            const isEditing = editing?.key === key && editing?.idx === idx
-            if (isEditing) {
-              return (
-                <div key={idx} className="px-1 py-1">
-                  <EditForm
-                    skey={key}
-                    form={editForm}
-                    onChange={onEditChange}
-                    onConfirm={onEditConfirm}
-                    onUndo={onEditUndo}
-                  />
-                </div>
-              )
-            }
-            return (
-              <div key={idx} className="flex items-start gap-1 rounded-xl py-1.5 hover:bg-ray-border/30 transition-colors">
-                <RowContent skey={key} r={r} />
-                <RowActions
-                  onEdit={() => onEditStart(key, idx, r)}
-                  onDelete={() => onDelete(key, idx, r)}
-                />
-              </div>
-            )
-          })}
+        <div className="overflow-x-auto border-t border-ray-border/50">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="text-[9px] uppercase tracking-wider text-slate-500">
+                {cols.map((c, i) => (
+                  <th key={i} className={`px-2.5 py-2 font-bold ${c.align === 'right' ? 'text-right' : 'text-left'} ${c.grow ? 'w-full' : 'whitespace-nowrap'}`}>
+                    {c.label}
+                  </th>
+                ))}
+                <th className="w-px px-2 py-2" aria-label="Acciones" />
+              </tr>
+            </thead>
+            <tbody>
+              {entradasConIdx.map(({ r, idx }) => {
+                const isEditing = editing?.key === key && editing?.idx === idx
+                if (isEditing) {
+                  return (
+                    <tr key={idx}>
+                      <td colSpan={cols.length + 1} className="p-2">
+                        <EditForm skey={key} form={editForm} onChange={onEditChange} onConfirm={onEditConfirm} onUndo={onEditUndo} />
+                      </td>
+                    </tr>
+                  )
+                }
+                return (
+                  <tr key={idx} className="border-t border-ray-border/40 hover:bg-ray-border/20 transition-colors">
+                    {cols.map((c, i) => (
+                      <td key={i} className={`px-2.5 py-2 align-top tabular-nums ${c.align === 'right' ? 'text-right' : 'text-left'} ${
+                        c.strong ? 'font-medium text-slate-100' : c.accent ? `font-semibold ${ac.head}` : 'text-slate-400'
+                      } ${c.grow ? 'break-words' : 'whitespace-nowrap'}`}>
+                        {c.cell(r)}
+                      </td>
+                    ))}
+                    <td className="px-1.5 py-1.5 align-top">
+                      <div className="flex items-center gap-0.5">
+                        <button type="button" onClick={() => onEditStart(key, idx, r)} aria-label="Editar"
+                          className="rounded-md p-1 text-slate-600 hover:bg-ray-border hover:text-ray-cyan transition-colors">
+                          <Pencil size={12} />
+                        </button>
+                        <button type="button" onClick={() => onDelete(key, idx, r)} aria-label="Eliminar"
+                          className="rounded-md p-1 text-slate-600 hover:bg-red-900/20 hover:text-red-400 transition-colors">
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+            {hasFoot && (
+              <tfoot>
+                <tr className="border-t-2 border-ray-border/70 bg-ray-border/10">
+                  {cols.map((c, i) => (
+                    <td key={i} className={`px-2.5 py-2 align-top tabular-nums ${c.align === 'right' ? 'text-right' : 'text-left'} ${
+                      i === 0 ? 'text-[10px] font-bold uppercase tracking-wide text-slate-500' : `font-bold ${ac.head}`
+                    } ${c.grow ? '' : 'whitespace-nowrap'}`}>
+                      {i === 0 ? 'Total' : (c.foot ? c.foot(entradas) : '')}
+                    </td>
+                  ))}
+                  <td className="px-1.5" />
+                </tr>
+              </tfoot>
+            )}
+          </table>
         </div>
       )}
     </article>

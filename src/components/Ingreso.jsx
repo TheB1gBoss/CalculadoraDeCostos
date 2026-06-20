@@ -310,7 +310,7 @@ function UltimoCard({ header, seccion, item }) {
   return (
     <article className={`card overflow-hidden border ${seccion.border}`}>
       <div className="flex items-center justify-between px-5 py-3 border-b border-ray-border/40">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Último ingreso</p>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{header}</p>
         {fecha && <p className="text-[10px] tabular-nums text-slate-500">{fecha}</p>}
       </div>
       <div className="flex items-start gap-3 px-5 py-3.5">

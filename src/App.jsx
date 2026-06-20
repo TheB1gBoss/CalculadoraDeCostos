@@ -232,6 +232,10 @@ export default function App() {
         {tab === 'resumen'   && <Dashboard estado={estado} />}
         {tab === 'historial' && <Historial estado={estado} />}
       </main>
+
+      <footer className="px-4 pb-3 pt-1 text-center text-[10px] tabular-nums text-gray-300 dark:text-slate-600">
+        v{__BUILD_ID__} UTC
+      </footer>
     </div>
   )
 }

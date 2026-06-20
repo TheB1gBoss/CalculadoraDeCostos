@@ -260,7 +260,7 @@ export default function Ingreso({ estado }) {
       />
       {ultimoGlobal && (
         <UltimoCard
-          header="Último ingreso"
+          header="Último ingreso general"
           seccion={ultimoGlobal.sec}
           item={ultimoGlobal.item}
         />

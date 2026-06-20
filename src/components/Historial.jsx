@@ -144,17 +144,6 @@ function normBano(r) {
   }
 }
 
-function MetalCell({ kilos, reales, tone }) {
-  if (!(kilos > 0) && !(reales > 0)) return dash
-  const amtCls = tone === 'oro' ? 'text-amber-300' : 'text-cyan-300'
-  return (
-    <div className="leading-tight">
-      {kilos > 0  && <div className="text-slate-400">{formatKilos(kilos)}</div>}
-      {reales > 0 && <div className={`font-semibold ${amtCls}`}>{formatReales(reales)}</div>}
-    </div>
-  )
-}
-
 /* ── Columnas por categoría (tabla compacta) ──
    cell: contenido por fila · foot: total de la columna       */
 const COLUMNS = {
@@ -188,17 +177,19 @@ const COLUMNS = {
       foot: (rows) => formatCLP(sumKey(rows, 'total_clp')) },
   ],
   banos_completados: [
-    { label: 'Fecha', align: 'left',  cell: (r) => formatFecha(r.fecha) },
-    { label: 'Plata', align: 'right',
-      cell: (r) => { const b = normBano(r); return <MetalCell kilos={b.plata_kilos} reales={b.plata_reales} tone="plata" /> },
-      foot: (rows) => <MetalCell tone="plata"
-        kilos={rows.reduce((a, r) => a + normBano(r).plata_kilos, 0)}
-        reales={rows.reduce((a, r) => a + normBano(r).plata_reales, 0)} /> },
-    { label: 'Oro', align: 'right',
-      cell: (r) => { const b = normBano(r); return <MetalCell kilos={b.oro_kilos} reales={b.oro_reales} tone="oro" /> },
-      foot: (rows) => <MetalCell tone="oro"
-        kilos={rows.reduce((a, r) => a + normBano(r).oro_kilos, 0)}
-        reales={rows.reduce((a, r) => a + normBano(r).oro_reales, 0)} /> },
+    { label: 'Fecha', align: 'left', cell: (r) => formatFecha(r.fecha) },
+    { group: 'Plata', label: 'Kilos', align: 'right',
+      cell: (r) => { const k = normBano(r).plata_kilos; return k > 0 ? formatKilos(k) : dash },
+      foot: (rows) => formatKilos(rows.reduce((a, r) => a + normBano(r).plata_kilos, 0)) },
+    { group: 'Plata', label: 'Reales', align: 'right',
+      cell: (r) => { const v = normBano(r).plata_reales; return v > 0 ? formatReales(v) : dash },
+      foot: (rows) => formatReales(rows.reduce((a, r) => a + normBano(r).plata_reales, 0)) },
+    { group: 'Oro', label: 'Kilos', align: 'right',
+      cell: (r) => { const k = normBano(r).oro_kilos; return k > 0 ? formatKilos(k) : dash },
+      foot: (rows) => formatKilos(rows.reduce((a, r) => a + normBano(r).oro_kilos, 0)) },
+    { group: 'Oro', label: 'Reales', align: 'right', accent: true,
+      cell: (r) => { const v = normBano(r).oro_reales; return v > 0 ? formatReales(v) : dash },
+      foot: (rows) => formatReales(rows.reduce((a, r) => a + normBano(r).oro_reales, 0)) },
   ],
   llegadas_mercaderia_por_bloque: [
     { label: 'Fecha',  align: 'left',  cell: (r) => formatFecha(r.fecha) },
@@ -206,8 +197,11 @@ const COLUMNS = {
       foot: (rows) => formatKilos(sumKey(rows, 'MICRO')) },
     { label: 'CADENA', align: 'right', cell: (r) => ((r.CADENA || 0) > 0 ? formatKilos(r.CADENA) : dash),
       foot: (rows) => formatKilos(sumKey(rows, 'CADENA')) },
-    { label: 'ORO GF', align: 'right', accent: true, cell: (r) => ((r['ORO GF'] || 0) > 0 ? formatKilos(r['ORO GF']) : dash),
+    { label: 'ORO GF', align: 'right', cell: (r) => ((r['ORO GF'] || 0) > 0 ? formatKilos(r['ORO GF']) : dash),
       foot: (rows) => formatKilos(sumKey(rows, 'ORO GF')) },
+    { label: 'Total',  align: 'right', accent: true,
+      cell: (r) => formatKilos(num(r.MICRO) + num(r.CADENA) + num(r['ORO GF'])),
+      foot: (rows) => formatKilos(sumKey(rows, 'MICRO') + sumKey(rows, 'CADENA') + sumKey(rows, 'ORO GF')) },
   ],
 }
 
@@ -230,6 +224,8 @@ function SeccionCategoria({ seccion, entradas, editing, editForm, onEditStart, o
   const ac = AC[accent]
   const cols = COLUMNS[key] || []
   const hasFoot = cols.some((c) => c.foot)
+  const hasGroups = cols.some((c) => c.group)
+  const div = 'border-r border-ray-border/40' // separador vertical entre columnas
   // Ordenar por fecha ascendente; guardar índice original para edición/borrado
   const entradasConIdx = entradas.map((r, idx) => ({ r, idx }))
   entradasConIdx.sort((a, b) => (a.r.fecha || '') < (b.r.fecha || '') ? -1 : (a.r.fecha || '') > (b.r.fecha || '') ? 1 : 0)
@@ -264,14 +260,53 @@ function SeccionCategoria({ seccion, entradas, editing, editForm, onEditStart, o
         <div className="overflow-x-auto border-t border-ray-border/50">
           <table className="w-full text-xs">
             <thead>
-              <tr className="text-[9px] uppercase tracking-wider text-slate-500">
-                {cols.map((c, i) => (
-                  <th key={i} className={`px-2.5 py-2 font-bold ${c.align === 'right' ? 'text-right' : 'text-left'} ${c.grow ? 'w-full' : 'whitespace-nowrap'}`}>
-                    {c.label}
-                  </th>
-                ))}
-                <th className="w-px px-2 py-2" aria-label="Acciones" />
-              </tr>
+              {hasGroups ? (
+                <>
+                  <tr className="text-[9px] uppercase tracking-wider text-slate-500">
+                    {(() => {
+                      const out = []
+                      for (let i = 0; i < cols.length; i++) {
+                        const c = cols[i]
+                        if (!c.group) {
+                          out.push(
+                            <th key={i} rowSpan={2}
+                              className={`px-2.5 py-2 align-bottom font-bold ${c.align === 'right' ? 'text-right' : 'text-left'} ${div} ${c.grow ? 'w-full' : 'whitespace-nowrap'}`}>
+                              {c.label}
+                            </th>
+                          )
+                        } else if (i === 0 || cols[i - 1].group !== c.group) {
+                          let span = 1
+                          while (i + span < cols.length && cols[i + span].group === c.group) span++
+                          out.push(
+                            <th key={`g${i}`} colSpan={span} className={`px-2.5 py-1.5 text-center font-bold ${div}`}>
+                              {c.group}
+                            </th>
+                          )
+                          i += span - 1
+                        }
+                      }
+                      return out
+                    })()}
+                    <th rowSpan={2} className="w-px px-2 py-2" aria-label="Acciones" />
+                  </tr>
+                  <tr className="text-[9px] uppercase tracking-wider text-slate-500">
+                    {cols.map((c, i) => (c.group ? (
+                      <th key={i} className={`px-2.5 py-1.5 font-semibold ${c.align === 'right' ? 'text-right' : 'text-left'} ${div} whitespace-nowrap`}>
+                        {c.label}
+                      </th>
+                    ) : null))}
+                  </tr>
+                </>
+              ) : (
+                <tr className="text-[9px] uppercase tracking-wider text-slate-500">
+                  {cols.map((c, i) => (
+                    <th key={i} className={`px-2.5 py-2 font-bold ${c.align === 'right' ? 'text-right' : 'text-left'} ${div} ${c.grow ? 'w-full' : 'whitespace-nowrap'}`}>
+                      {c.label}
+                    </th>
+                  ))}
+                  <th className="w-px px-2 py-2" aria-label="Acciones" />
+                </tr>
+              )}
             </thead>
             <tbody>
               {entradasConIdx.map(({ r, idx }) => {
@@ -288,7 +323,7 @@ function SeccionCategoria({ seccion, entradas, editing, editForm, onEditStart, o
                 return (
                   <tr key={idx} className="border-t border-ray-border/40 hover:bg-ray-border/20 transition-colors">
                     {cols.map((c, i) => (
-                      <td key={i} className={`px-2.5 py-2 align-top tabular-nums ${c.align === 'right' ? 'text-right' : 'text-left'} ${
+                      <td key={i} className={`px-2.5 py-2 align-top tabular-nums ${div} ${c.align === 'right' ? 'text-right' : 'text-left'} ${
                         c.strong ? 'font-medium text-slate-100' : c.accent ? `font-semibold ${ac.head}` : 'text-slate-400'
                       } ${c.grow ? 'break-words' : 'whitespace-nowrap'}`}>
                         {c.cell(r)}
@@ -314,7 +349,7 @@ function SeccionCategoria({ seccion, entradas, editing, editForm, onEditStart, o
               <tfoot>
                 <tr className="border-t-2 border-ray-border/70 bg-ray-border/10">
                   {cols.map((c, i) => (
-                    <td key={i} className={`px-2.5 py-2 align-top tabular-nums ${c.align === 'right' ? 'text-right' : 'text-left'} ${
+                    <td key={i} className={`px-2.5 py-2 align-top tabular-nums ${div} ${c.align === 'right' ? 'text-right' : 'text-left'} ${
                       i === 0 ? 'text-[10px] font-bold uppercase tracking-wide text-slate-500' : `font-bold ${ac.head}`
                     } ${c.grow ? '' : 'whitespace-nowrap'}`}>
                       {i === 0 ? 'Total' : (c.foot ? c.foot(entradas) : '')}

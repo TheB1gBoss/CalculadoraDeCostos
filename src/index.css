@@ -59,3 +59,12 @@
            text-gray-500 dark:text-slate-400;
   }
 }
+
+/* ── Scroll horizontal sin barra visible (pills/chips) ────── */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}

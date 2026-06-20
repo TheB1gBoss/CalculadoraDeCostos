@@ -11,6 +11,135 @@ const today = () => {
 }
 const CATS = ['MICRO', 'CADENA', 'ORO GF']
 
+/* ── Definición de secciones registrables ────────────────────
+   Una sola fuente de verdad: pill, formulario, colores y el
+   resumen del "último ingreso" de cada categoría.            */
+function buildSecciones(proveedoresHistoricos) {
+  return [
+    {
+      key: 'compras_bruto',
+      short: 'Compras',
+      label: 'Compras de bruto',
+      sub: 'Oro/plata en Brasil',
+      icon: ShoppingCart,
+      color: 'text-ray-cyan', dot: 'bg-ray-cyan', border: 'border-ray-cyan/20',
+      pillOn: 'border-ray-cyan/60 bg-ray-cyan/10 text-ray-cyan',
+      addLabel: 'Agregar compra',
+      form: {
+        type: 'quick',
+        fields: [
+          { key: 'fecha',        label: 'Fecha',     type: 'date',   default: today() },
+          { key: 'detalle',      label: 'Proveedor', type: 'text',   placeholder: 'Nombre del proveedor', suggestions: proveedoresHistoricos },
+          { key: 'kilos',        label: 'Kilos',     type: 'number', placeholder: '0,000', prefix: 'kg' },
+          { key: 'total_reales', label: 'Total R$',  type: 'number', placeholder: '0,00',  prefix: 'R$' },
+        ],
+      },
+      detalle: (r) => [
+        r.detalle || null,
+        r.kilos > 0 ? formatKilos(r.kilos) : null,
+        r.total_reales > 0 ? formatReales(r.total_reales) : null,
+      ].filter(Boolean),
+    },
+    {
+      key: 'pagos',
+      short: 'Pagos',
+      label: 'Pagos realizados',
+      sub: 'Define el T/C ponderado',
+      icon: Banknote,
+      color: 'text-emerald-400', dot: 'bg-emerald-400', border: 'border-emerald-700/30',
+      pillOn: 'border-emerald-500/60 bg-emerald-500/10 text-emerald-300',
+      addLabel: 'Agregar pago',
+      form: {
+        type: 'quick',
+        fields: [
+          { key: 'fecha',    label: 'Fecha',       type: 'date',   default: today() },
+          { key: 'reales',   label: 'R$ pagados',  type: 'number', placeholder: '0,00', prefix: 'R$' },
+          { key: 'chilenos', label: 'CLP pagados', type: 'number', placeholder: '0',    prefix: '$'  },
+        ],
+      },
+      detalle: (r) => [
+        r.reales > 0 ? formatReales(r.reales) : null,
+        r.chilenos > 0 ? formatCLP(r.chilenos) : null,
+      ].filter(Boolean),
+    },
+    {
+      key: 'servicios_completados',
+      short: 'Servicios',
+      label: 'Servicios de fabricación',
+      sub: 'Montaje y servicios en R$',
+      icon: Wrench,
+      color: 'text-violet-400', dot: 'bg-violet-400', border: 'border-violet-700/30',
+      pillOn: 'border-violet-500/60 bg-violet-500/10 text-violet-300',
+      addLabel: 'Agregar servicio',
+      form: {
+        type: 'quick',
+        fields: [
+          { key: 'fecha',        label: 'Fecha',    type: 'date',   default: today() },
+          { key: 'detalle',      label: 'Detalle',  type: 'text',   placeholder: 'Concepto' },
+          { key: 'total_reales', label: 'Total R$', type: 'number', placeholder: '0,00', prefix: 'R$' },
+        ],
+      },
+      detalle: (r) => [
+        r.detalle || null,
+        r.total_reales > 0 ? formatReales(r.total_reales) : null,
+      ].filter(Boolean),
+    },
+    {
+      key: 'pagos_aduana',
+      short: 'Aduana',
+      label: 'Pagos a aduana',
+      sub: 'T/I y glosas en CLP',
+      icon: Package,
+      color: 'text-amber-400', dot: 'bg-amber-400', border: 'border-amber-700/30',
+      pillOn: 'border-amber-500/60 bg-amber-500/10 text-amber-300',
+      addLabel: 'Agregar pago aduana',
+      form: {
+        type: 'quick',
+        fields: [
+          { key: 'fecha',     label: 'Fecha',     type: 'date',   default: today() },
+          { key: 'kilos',     label: 'Kilos',     type: 'number', placeholder: '0,000', prefix: 'kg' },
+          { key: 'total_clp', label: 'Total CLP', type: 'number', placeholder: '0',    prefix: '$'  },
+        ],
+      },
+      detalle: (r) => [
+        r.kilos > 0 ? formatKilos(r.kilos) : null,
+        r.total_clp > 0 ? formatCLP(r.total_clp) : null,
+      ].filter(Boolean),
+    },
+    {
+      key: 'banos_completados',
+      short: 'Baños',
+      label: 'Baños procesados',
+      sub: 'Plata y oro (kg · R$)',
+      icon: Droplet,
+      color: 'text-blue-400', dot: 'bg-blue-400', border: 'border-blue-700/30',
+      pillOn: 'border-blue-500/60 bg-blue-500/10 text-blue-300',
+      addLabel: 'Agregar baños',
+      form: { type: 'banos' },
+      detalle: (r) => [
+        (r.plata_kilos || 0) > 0 ? `Plata ${formatKilos(r.plata_kilos)}` : null,
+        (r.oro_kilos || 0) > 0 ? `Oro ${formatKilos(r.oro_kilos)}` : null,
+      ].filter(Boolean),
+    },
+    {
+      key: 'llegadas_mercaderia_por_bloque',
+      short: 'Llegadas',
+      label: 'Kilos llegados',
+      sub: 'Embarque por categoría',
+      icon: PackageCheck,
+      color: 'text-teal-400', dot: 'bg-teal-400', border: 'border-teal-700/30',
+      pillOn: 'border-teal-500/60 bg-teal-500/10 text-teal-300',
+      addLabel: 'Agregar embarque',
+      form: { type: 'llegadas' },
+      detalle: (r) => [
+        (r.MICRO || 0) > 0 ? `MICRO ${formatKilos(r.MICRO)}` : null,
+        (r.CADENA || 0) > 0 ? `CADENA ${formatKilos(r.CADENA)}` : null,
+        (r['ORO GF'] || 0) > 0 ? `ORO GF ${formatKilos(r['ORO GF'])}` : null,
+      ].filter(Boolean),
+    },
+  ]
+}
+
 export default function Ingreso({ estado }) {
   const { mesData, updateMes, setPreciosPonderados, state } = estado
 
@@ -25,14 +154,86 @@ export default function Ingreso({ estado }) {
     return [...nombres].sort()
   }, [state?.meses])
 
+  const secciones = useMemo(() => buildSecciones(proveedoresHistoricos), [proveedoresHistoricos])
+
+  const [selKey, setSelKey] = useState(secciones[0].key)
+  const sel = secciones.find(s => s.key === selKey) || secciones[0]
+
   const addRow = (key, row) =>
     updateMes({ [key]: [...(mesData[key] || []), { ...row, _ts: Date.now() }] })
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
 
-      <UltimoIngreso mesData={mesData} />
+      {/* Último ingreso de la categoría seleccionada */}
+      <UltimoIngreso seccion={sel} rows={mesData[sel.key] || []} />
 
+      {/* REGISTRAR — pills horizontales desplazables */}
+      <div>
+        <p className="px-1 pb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Registrar</p>
+        <div className="-mx-1 flex gap-2 overflow-x-auto scrollbar-none px-1 pb-1">
+          {secciones.map((s) => {
+            const active = s.key === selKey
+            const n = (mesData[s.key] || []).length
+            return (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => setSelKey(s.key)}
+                className={`shrink-0 inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-semibold transition ${
+                  active ? s.pillOn : 'border-ray-border text-slate-400 hover:text-white hover:bg-ray-border/30'
+                }`}
+              >
+                <span className={`h-2 w-2 rounded-full ${s.dot}`} />
+                {s.short}
+                <span className={`rounded-md px-1.5 py-0.5 text-[11px] font-bold tabular-nums ${
+                  active ? 'bg-ray-bg/50' : 'bg-ray-border/50 text-slate-500'
+                }`}>
+                  {n}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Formulario activo de la sección seleccionada */}
+      <section className="card overflow-hidden">
+        <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-3 dark:border-ray-border">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-ray-cyan-dim dark:text-ray-cyan">
+              <sel.icon size={18} />
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">{sel.label}</p>
+              <p className="truncate text-xs text-gray-500 dark:text-slate-400">{sel.sub}</p>
+            </div>
+          </div>
+          <span className="shrink-0 rounded-lg border border-ray-cyan/25 bg-ray-cyan/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-ray-cyan">
+            {(mesData[sel.key] || []).length} reg.
+          </span>
+        </div>
+
+        <div className="p-4">
+          {/* key fuerza el remount del formulario al cambiar de sección (resetea estado) */}
+          {sel.form.type === 'quick' && (
+            <QuickAdd
+              key={sel.key}
+              fields={sel.form.fields}
+              addLabel={sel.addLabel}
+              onAdd={(row) => addRow(sel.key, row)}
+            />
+          )}
+          {sel.form.type === 'banos' && (
+            <BanosAdd key={sel.key} onAdd={(row) => addRow(sel.key, row)} />
+          )}
+          {sel.form.type === 'llegadas' && (
+            <LlegadasAdd key={sel.key} onAdd={(row) => addRow(sel.key, row)} />
+          )}
+        </div>
+      </section>
+
+      {/* Precios ponderados — configuración del mes */}
       <Accordion title="Precios Ponderados por Kg" icon={DollarSign}>
         <PreciosPonderados
           valores={mesData.costos_ponderados_por_kilo || {}}
@@ -40,173 +241,54 @@ export default function Ingreso({ estado }) {
         />
       </Accordion>
 
-      <Accordion title="Compras de Bruto" icon={ShoppingCart}>
-        <QuickAdd
-          fields={[
-            { key: 'fecha',        label: 'Fecha',     type: 'date',   default: today() },
-            { key: 'detalle',      label: 'Proveedor', type: 'text',   placeholder: 'Nombre del proveedor', suggestions: proveedoresHistoricos },
-            { key: 'kilos',        label: 'Kilos',     type: 'number', placeholder: '0,000', prefix: 'kg' },
-            { key: 'total_reales', label: 'Total R$',  type: 'number', placeholder: '0,00',  prefix: 'R$' },
-          ]}
-          onAdd={(row) => addRow('compras_bruto', row)}
-        />
-      </Accordion>
-
-      <Accordion title="Pagos Realizados" icon={Banknote}>
-        <QuickAdd
-          fields={[
-            { key: 'fecha',    label: 'Fecha',       type: 'date',   default: today() },
-            { key: 'reales',   label: 'R$ pagados',  type: 'number', placeholder: '0,00', prefix: 'R$' },
-            { key: 'chilenos', label: 'CLP pagados', type: 'number', placeholder: '0',    prefix: '$'  },
-          ]}
-          onAdd={(row) => addRow('pagos', row)}
-        />
-      </Accordion>
-
-      <Accordion title="Servicios de Fabricación" icon={Wrench}>
-        <QuickAdd
-          fields={[
-            { key: 'fecha',        label: 'Fecha',    type: 'date',   default: today() },
-            { key: 'detalle',      label: 'Detalle',  type: 'text',   placeholder: 'Concepto' },
-            { key: 'total_reales', label: 'Total R$', type: 'number', placeholder: '0,00', prefix: 'R$' },
-          ]}
-          onAdd={(row) => addRow('servicios_completados', row)}
-        />
-      </Accordion>
-
-      <Accordion title="Pagos a Aduana" icon={Package}>
-        <QuickAdd
-          fields={[
-            { key: 'fecha',     label: 'Fecha',     type: 'date',   default: today() },
-            { key: 'kilos',     label: 'Kilos',     type: 'number', placeholder: '0,000', prefix: 'kg' },
-            { key: 'total_clp', label: 'Total CLP', type: 'number', placeholder: '0',    prefix: '$'  },
-          ]}
-          onAdd={(row) => addRow('pagos_aduana', row)}
-        />
-      </Accordion>
-
-      <Accordion title="Baños Procesados" icon={Droplet}>
-        <BanosAdd onAdd={(row) => addRow('banos_completados', row)} />
-      </Accordion>
-
-      <Accordion title="Kilos Llegados" icon={PackageCheck}>
-        <LlegadasAdd onAdd={(row) => addRow('llegadas_mercaderia_por_bloque', row)} />
-      </Accordion>
-
-      <p className="px-2 pt-2 text-center text-xs text-gray-400 dark:text-slate-600">
+      <p className="px-2 pt-1 text-center text-xs text-gray-400 dark:text-slate-600">
         Las entradas registradas se ven en la pestaña <span className="font-semibold">Historial</span>.
       </p>
     </div>
   )
 }
 
-/* ── UltimoIngreso: card resumen del registro más reciente ── */
-const SECCIONES_META = [
-  {
-    key: 'compras_bruto',
-    label: 'Compra de bruto',
-    icon: ShoppingCart,
-    color: 'text-ray-cyan',
-    border: 'border-ray-cyan/20',
-    dot: 'bg-ray-cyan',
-    detalle: (r) => [
-      r.detalle || null,
-      r.kilos > 0 ? formatKilos(r.kilos) : null,
-      r.total_reales > 0 ? formatReales(r.total_reales) : null,
-    ].filter(Boolean),
-  },
-  {
-    key: 'pagos',
-    label: 'Pago realizado',
-    icon: Banknote,
-    color: 'text-emerald-400',
-    border: 'border-emerald-700/30',
-    dot: 'bg-emerald-400',
-    detalle: (r) => [
-      r.reales > 0 ? formatReales(r.reales) : null,
-      r.chilenos > 0 ? formatCLP(r.chilenos) : null,
-    ].filter(Boolean),
-  },
-  {
-    key: 'servicios_completados',
-    label: 'Servicio de fabricación',
-    icon: Wrench,
-    color: 'text-violet-400',
-    border: 'border-violet-700/30',
-    dot: 'bg-violet-400',
-    detalle: (r) => [
-      r.detalle || null,
-      r.total_reales > 0 ? formatReales(r.total_reales) : null,
-    ].filter(Boolean),
-  },
-  {
-    key: 'pagos_aduana',
-    label: 'Pago a aduana',
-    icon: Package,
-    color: 'text-amber-400',
-    border: 'border-amber-700/30',
-    dot: 'bg-amber-400',
-    detalle: (r) => [
-      r.kilos > 0 ? formatKilos(r.kilos) : null,
-      r.total_clp > 0 ? formatCLP(r.total_clp) : null,
-    ].filter(Boolean),
-  },
-  {
-    key: 'banos_completados',
-    label: 'Baño procesado',
-    icon: Droplet,
-    color: 'text-blue-400',
-    border: 'border-blue-700/30',
-    dot: 'bg-blue-400',
-    detalle: (r) => [
-      (r.plata_kilos || 0) > 0 ? `Plata ${formatKilos(r.plata_kilos)}` : null,
-      (r.oro_kilos || 0) > 0 ? `Oro ${formatKilos(r.oro_kilos)}` : null,
-    ].filter(Boolean),
-  },
-  {
-    key: 'llegadas_mercaderia_por_bloque',
-    label: 'Llegada de mercadería',
-    icon: PackageCheck,
-    color: 'text-teal-400',
-    border: 'border-teal-700/30',
-    dot: 'bg-teal-400',
-    detalle: (r) => [
-      (r.MICRO || 0) > 0 ? `MICRO ${formatKilos(r.MICRO)}` : null,
-      (r.CADENA || 0) > 0 ? `CADENA ${formatKilos(r.CADENA)}` : null,
-      (r['ORO GF'] || 0) > 0 ? `ORO GF ${formatKilos(r['ORO GF'])}` : null,
-    ].filter(Boolean),
-  },
-]
-
-function UltimoIngreso({ mesData }) {
-  let best = null
-  for (const sec of SECCIONES_META) {
-    for (const item of mesData[sec.key] || []) {
-      if (!best || (item._ts || 0) > (best.item._ts || 0)) {
-        best = { sec, item }
-      }
-    }
+/* ── UltimoIngreso: último registro de la categoría seleccionada ── */
+function UltimoIngreso({ seccion, rows }) {
+  // El registro más reciente de la categoría (por timestamp, con fallback al último)
+  let item = null
+  for (const r of rows) {
+    if (!item || (r._ts || 0) >= (item._ts || 0)) item = r
   }
 
-  if (!best) return null
+  const Icon = seccion.icon
 
-  const { sec, item } = best
-  const Icon = sec.icon
-  const detalles = sec.detalle(item)
+  if (!item) {
+    return (
+      <article className="card overflow-hidden border border-ray-border/60">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-ray-border/40">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Último ingreso</p>
+        </div>
+        <div className="flex items-center gap-3 px-5 py-3.5">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-ray-border/30 text-slate-500">
+            <Icon size={16} />
+          </div>
+          <p className="text-sm text-slate-500">
+            Aún no hay registros en <span className="font-semibold text-slate-400">{seccion.label}</span>.
+          </p>
+        </div>
+      </article>
+    )
+  }
+
+  const detalles = seccion.detalle(item)
   const fecha = item.fecha ? formatFecha(item.fecha) : null
 
   return (
-    <article className={`card overflow-hidden border ${sec.border}`}>
+    <article className={`card overflow-hidden border ${seccion.border}`}>
       <div className="flex items-center justify-between px-5 py-3 border-b border-ray-border/40">
         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Último ingreso</p>
-        {fecha && (
-          <p className="text-[10px] tabular-nums text-slate-500">{fecha}</p>
-        )}
+        {fecha && <p className="text-[10px] tabular-nums text-slate-500">{fecha}</p>}
       </div>
       <div className="flex items-start gap-3 px-5 py-3.5">
-        <div className={`mt-0.5 shrink-0 h-2 w-2 rounded-full ${sec.dot}`} />
+        <div className={`mt-0.5 shrink-0 h-2 w-2 rounded-full ${seccion.dot}`} />
         <div className="min-w-0 flex-1">
-          <p className={`text-sm font-semibold ${sec.color}`}>{sec.label}</p>
+          <p className={`text-sm font-semibold ${seccion.color}`}>{seccion.label}</p>
           {detalles.length > 0 && (
             <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5">
               {detalles.map((d, i) => (
@@ -254,7 +336,7 @@ function ProveedorInput({ value, placeholder, suggestions, onChange }) {
 }
 
 /* ── QuickAdd: formulario de ingreso ─────────────────────── */
-function QuickAdd({ fields, onAdd }) {
+function QuickAdd({ fields, onAdd, addLabel = 'Agregar' }) {
   const init = () => Object.fromEntries(fields.map((f) => [f.key, f.default ?? '']))
   const [form, setForm] = useState(init)
   const [error, setError] = useState(null)
@@ -358,7 +440,7 @@ function QuickAdd({ fields, onAdd }) {
       {error && <p className="text-xs text-red-400 font-medium">{error}</p>}
       {!pendiente ? (
         <button type="button" onClick={handleAdd} className="btn-primary w-full">
-          <Plus size={16} /> Agregar
+          <Plus size={16} /> {addLabel}
         </button>
       ) : (
         <div className="rounded-xl border border-ray-border/60 bg-ray-border/10 p-3 space-y-2">

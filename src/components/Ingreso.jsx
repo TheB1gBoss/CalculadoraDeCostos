@@ -162,11 +162,30 @@ export default function Ingreso({ estado }) {
   const addRow = (key, row) =>
     updateMes({ [key]: [...(mesData[key] || []), { ...row, _ts: Date.now() }] })
 
+  // Último registro de la categoría seleccionada
+  const ultimoSeccion = ultimoDe(mesData[sel.key] || [])
+
+  // Último registro real entre TODAS las categorías del mes
+  const ultimoGlobal = useMemo(() => {
+    let best = null
+    for (const s of secciones) {
+      for (const r of mesData[s.key] || []) {
+        if (!best || (r._ts || 0) > (best.item._ts || 0)) best = { sec: s, item: r }
+      }
+    }
+    return best
+  }, [secciones, mesData])
+
   return (
     <div className="space-y-4">
 
-      {/* Último ingreso de la categoría seleccionada */}
-      <UltimoIngreso seccion={sel} rows={mesData[sel.key] || []} />
+      {/* Precios ponderados — configuración, arriba de Registrar */}
+      <Accordion title="Precios Ponderados" icon={DollarSign}>
+        <PreciosPonderados
+          valores={mesData.costos_ponderados_por_kilo || {}}
+          onGuardar={setPreciosPonderados}
+        />
+      </Accordion>
 
       {/* REGISTRAR — pills horizontales desplazables */}
       <div>
@@ -233,13 +252,19 @@ export default function Ingreso({ estado }) {
         </div>
       </section>
 
-      {/* Precios ponderados — configuración del mes */}
-      <Accordion title="Precios Ponderados por Kg" icon={DollarSign}>
-        <PreciosPonderados
-          valores={mesData.costos_ponderados_por_kilo || {}}
-          onGuardar={setPreciosPonderados}
+      {/* Últimos ingresos — al final: categoría seleccionada + global */}
+      <UltimoCard
+        header={`Último en ${sel.short}`}
+        seccion={sel}
+        item={ultimoSeccion}
+      />
+      {ultimoGlobal && (
+        <UltimoCard
+          header="Último ingreso"
+          seccion={ultimoGlobal.sec}
+          item={ultimoGlobal.item}
         />
-      </Accordion>
+      )}
 
       <p className="px-2 pt-1 text-center text-xs text-gray-400 dark:text-slate-600">
         Las entradas registradas se ven en la pestaña <span className="font-semibold">Historial</span>.
@@ -248,21 +273,24 @@ export default function Ingreso({ estado }) {
   )
 }
 
-/* ── UltimoIngreso: último registro de la categoría seleccionada ── */
-function UltimoIngreso({ seccion, rows }) {
-  // El registro más reciente de la categoría (por timestamp, con fallback al último)
+/* ── Último registro de una lista (por timestamp, con fallback al último) ── */
+function ultimoDe(rows) {
   let item = null
   for (const r of rows) {
     if (!item || (r._ts || 0) >= (item._ts || 0)) item = r
   }
+  return item
+}
 
+/* ── UltimoCard: tarjeta resumen de un registro ── */
+function UltimoCard({ header, seccion, item }) {
   const Icon = seccion.icon
 
   if (!item) {
     return (
       <article className="card overflow-hidden border border-ray-border/60">
         <div className="flex items-center justify-between px-5 py-3 border-b border-ray-border/40">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Último ingreso</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{header}</p>
         </div>
         <div className="flex items-center gap-3 px-5 py-3.5">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-ray-border/30 text-slate-500">

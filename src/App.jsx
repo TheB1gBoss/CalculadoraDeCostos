@@ -190,8 +190,8 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b border-gray-200 bg-white dark:border-ray-border dark:bg-ray-surface">
-        <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3 md:px-6">
+      <header className="border-b border-gray-200 bg-white dark:border-ray-border dark:bg-ray-surface" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+        <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3 md:px-6" style={{ paddingLeft: 'max(1rem, env(safe-area-inset-left))', paddingRight: 'max(1rem, env(safe-area-inset-right))' }}>
           <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500 text-white dark:bg-ray-cyan dark:text-ray-bg dark:shadow-glow-sm">
             <Coins size={20} aria-hidden />
             {/* Indicador de sincronización */}

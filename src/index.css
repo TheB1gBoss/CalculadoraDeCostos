@@ -69,11 +69,21 @@
   display: none;
 }
 
-/* ── Fecha: alinear el valor a la izquierda en iOS/Safari ──
-   (por defecto iOS centra el valor del input date) ───────── */
+/* ── Fecha (iOS/Safari) ──
+   iOS no respeta width:100% y desborda el recuadro a la derecha,
+   y además centra el valor. Forzamos ancho del contenedor y
+   alineación a la izquierda. ─────────────────────────────── */
+input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
 input[type="date"]::-webkit-date-and-time-value {
   text-align: left;
 }
 input[type="date"]::-webkit-datetime-edit {
   text-align: left;
+  padding: 0;
 }

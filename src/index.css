@@ -68,3 +68,12 @@
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
+
+/* ── Fecha: alinear el valor a la izquierda en iOS/Safari ──
+   (por defecto iOS centra el valor del input date) ───────── */
+input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+}
+input[type="date"]::-webkit-datetime-edit {
+  text-align: left;
+}

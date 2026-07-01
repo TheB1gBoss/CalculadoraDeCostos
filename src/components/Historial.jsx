@@ -2,6 +2,7 @@ import { Calendar, ChevronDown, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { formatCLP, formatFecha, formatKilos, formatMes, formatReales, formatearInputNumero, formatearNumeroParaInput } from '../lib/formato.js'
 import { parseNumeroFlexible } from '../lib/formato.js'
+import { MERMA_LLEGADAS } from '../lib/calculos.js'
 
 const SECCIONES = [
   { key: 'compras_bruto',                   label: 'Compras de Bruto',          accent: 'blue'    },
@@ -199,9 +200,9 @@ const COLUMNS = {
       foot: (rows) => formatKilos(sumKey(rows, 'CADENA')) },
     { label: 'ORO GF', align: 'right', cell: (r) => ((r['ORO GF'] || 0) > 0 ? formatKilos(r['ORO GF']) : dash),
       foot: (rows) => formatKilos(sumKey(rows, 'ORO GF')) },
-    { label: 'Total',  align: 'right', accent: true,
-      cell: (r) => formatKilos(num(r.MICRO) + num(r.CADENA) + num(r['ORO GF'])),
-      foot: (rows) => formatKilos(sumKey(rows, 'MICRO') + sumKey(rows, 'CADENA') + sumKey(rows, 'ORO GF')) },
+    { label: 'Total −1%', align: 'right', accent: true,
+      cell: (r) => formatKilos((num(r.MICRO) + num(r.CADENA) + num(r['ORO GF'])) * MERMA_LLEGADAS),
+      foot: (rows) => formatKilos((sumKey(rows, 'MICRO') + sumKey(rows, 'CADENA') + sumKey(rows, 'ORO GF')) * MERMA_LLEGADAS) },
   ],
 }
 

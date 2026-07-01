@@ -8,10 +8,11 @@
  *  - pagos_aduana[].total_clp           → CLP (sí está bien)
  *  - servicios_completados[].total_reales → R$
  *
- * Merma estándar al recibir bruto: 5% (factor 0.95).
+ * Merma estándar al recibir bruto: 3,97% (factor 0.96034).
+ * Calibrada con el proveedor: comprado neto real vs. kilos en fabricación.
  */
 
-export const MERMA_FACTOR = 0.95
+export const MERMA_FACTOR = 0.96034
 export const MERMA_LLEGADAS = 0.99
 
 const sum = (arr, get = (x) => x) =>
@@ -41,7 +42,7 @@ export function tipoCambioPonderado(pagos) {
  * BRUTO (CLP/kg) = (bruto_R$ + servicios_R$) × TC_pond / (kilos_compra × merma)
  *
  * Es el costo de la mercadería "bruta" llegada de Brasil, expresada por kg
- * efectivo (después de merma del 5%).
+ * efectivo (después de la merma, factor MERMA_FACTOR).
  */
 export function brutoPorKilo(comprasBruto, servicios, tcPonderado) {
   const brutoR$ = sum(comprasBruto, (c) => c.total_reales)

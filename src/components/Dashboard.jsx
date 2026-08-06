@@ -65,10 +65,19 @@ export default function Dashboard({ estado }) {
       })
   })()
 
-  const tcSerie = (mesData.pagos || [])
-    .filter((p) => p.reales > 0 && p.chilenos > 0 && p.fecha)
-    .map((p) => ({ fecha: p.fecha, tc: p.chilenos / p.reales }))
-    .sort((a, b) => a.fecha < b.fecha ? -1 : 1)
+  // Serie de TC por pago + promedio ponderado acumulado (progreso histórico)
+  const tcSerie = (() => {
+    const rows = (mesData.pagos || [])
+      .filter((p) => p.reales > 0 && p.chilenos > 0 && p.fecha)
+      .map((p) => ({ fecha: p.fecha, tc: p.chilenos / p.reales, reales: p.reales, chilenos: p.chilenos }))
+      .sort((a, b) => a.fecha < b.fecha ? -1 : 1)
+    let accCLP = 0, accR = 0
+    return rows.map((r) => {
+      accCLP += r.chilenos
+      accR += r.reales
+      return { fecha: r.fecha, tc: r.tc, prom: accR > 0 ? accCLP / accR : 0 }
+    })
+  })()
 
 const precios = normalizarPorCategoria(mesData.costos_ponderados_por_kilo || {})
   const margenes = ['MICRO', 'CADENA', 'ORO GF'].map((cat) => {
@@ -206,11 +215,15 @@ const precios = normalizarPorCategoria(mesData.costos_ponderados_por_kilo || {})
                   <XAxis dataKey="fecha" tick={{ fontSize: 9, fill: '#475569' }} tickFormatter={(v) => v?.slice(5)} interval="preserveStartEnd"/>
                   <YAxis tick={{ fontSize: 9, fill: '#475569' }} tickFormatter={(v) => formatNumero(v, 0)} domain={['auto','auto']}/>
                   <Tooltip contentStyle={{ borderRadius: 10, background: '#13181f', border: '1px solid #262d37', fontSize: 11, color: '#e2e8f0' }}
-                    formatter={(v) => [formatNumero(v, 2) + ' CLP/R$', 'TC']} labelFormatter={(v) => v}/>
+                    formatter={(v, name) => [formatNumero(v, 2) + ' CLP/R$', name]} labelFormatter={(v) => v}/>
+                  <Legend verticalAlign="top" height={22} iconType="plainline"
+                    wrapperStyle={{ fontSize: 10, color: '#94a3b8' }}/>
                   {tipoCambio > 0 && <ReferenceLine y={tipoCambio} stroke="#3fcbe0" strokeDasharray="4 4"
                     label={{ value: 'pond.', fill: '#3fcbe0', fontSize: 8, position: 'insideTopRight' }}/>}
-                  <Line type="monotone" dataKey="tc" stroke="#3fcbe0" strokeWidth={2}
+                  <Line type="monotone" dataKey="tc" name="TC por pago" stroke="#3fcbe0" strokeWidth={2}
                     dot={{ r: 2.5, fill: '#3fcbe0', strokeWidth: 0 }} activeDot={{ r: 4 }}/>
+                  <Line type="monotone" dataKey="prom" name="Promedio histórico" stroke="#e3c05a" strokeWidth={2.5}
+                    dot={false} activeDot={{ r: 4 }}/>
                 </LineChart>
               </ResponsiveContainer>
             </div>
